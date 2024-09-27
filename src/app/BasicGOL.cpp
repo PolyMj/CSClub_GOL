@@ -21,6 +21,7 @@
 #include "MeshGLData.hpp" // Create, draw, and clear meshes
 #include "GLSetup.hpp" // Setup GL
 #include "Shader.hpp" // Compile and init shaders
+#include "Buffer.hpp"
 
 #include <assimp/Importer.hpp> // For importing 3D models
 #include <assimp/scene.h> // For aiScene type
@@ -62,50 +63,6 @@ struct PointLight {
 	glm::vec4 color = glm::vec4(1,1,1,1);
 	GLint posLoc = -1;
 	GLint colorLoc = -1;
-};
-
-struct FBO {
-    unsigned int ID;
-    int width;
-    int height;
-    vector<unsigned int> colorIDs;
-    unsigned int depthRBO;
-
-    void clear() {
-        ID = 0;
-        width = 0;
-        height = 0;
-        colorIDs.clear();
-        depthRBO = 0;
-    };
-};
-
-struct GBuffer {
-	FBO fbo;
-	vector<int> locs;
-
-	void startGeometry() {
-		glBindFramebuffer(GL_FRAMEBUFFER, fbo.ID);
-	};
-
-	void endGeomtry() {
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	};
-
-	void startLighting() {
-		for (int i = 0; i < locs.size(); i++) {
-			glActiveTexture(GL_TEXTURE0 + i);
-			glBindTexture(GL_TEXTURE_2D, fbo.colorIDs.at(i));
-			glUniform1i(locs.at(i), i);
-		}
-	};
-
-	void endLighting() {
-		for (int i = 0; i < locs.size(); i++) {
-			glActiveTexture(GL_TEXTURE0 + i);
-			glBindTexture(GL_TEXTURE_2D, 0);
-		}
-	};
 };
 
 namespace lightProg {
@@ -423,126 +380,90 @@ void setViewport(glm::vec2 c1, glm::vec2 c2) {
 	else { vpsize.z = 1.0f; }
 }
 
-// Create a color attachment (output for fragment shaders)
-// Remember that format determines how many elements (e.g. float vs. vec2 vs. vec3)
-// **Is colorAttach the same as "location" in the fragment shader?
-unsigned int createColorAttachment(
-	int width, int height,
-	int internal, int format, 
-	int type,
-	int texFilter, int colorAttach) {
-	
-	unsigned int texID = 0;
-	glGenTextures(1, &texID);
-	glBindTexture(GL_TEXTURE_2D, texID);
-	glTexImage2D(GL_TEXTURE_2D, 0, internal, width, height, 0, format, type, 0);
-
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, texFilter);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, texFilter);
-
-	// Will probably need to be optional if actual textures are used rather than only gbuffers
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRROR_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRROR_CLAMP_TO_EDGE);
-
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorAttach, GL_TEXTURE_2D, texID, 0);
-
-	glBindTexture(GL_TEXTURE_2D, 0);
-	return texID;
-}
-
-// Create a renderbuffer
-unsigned int createDepthRBO(int width, int height) {
-	// Generate an rbo
-	unsigned int rbo = 0;
-	glGenRenderbuffers(1, &rbo);
-	glBindRenderbuffer(GL_RENDERBUFFER, rbo); // Bind rbo
-
-	// Establish data storage format and size for the rbo
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-	// Attaches the rbo to the specified attachment point of the currently bound framebuffer
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
-	
-	glBindRenderbuffer(GL_RENDERBUFFER, 0); // Unbind rbo
-	return rbo;
-}
-
-// Create an FBO
-void createFBO(FBO &fbo, int width, int height) {
-	fbo.clear();
-	glGenFramebuffers(1, &(fbo.ID));
-	fbo.width = width; fbo.height = height;
-	glBindFramebuffer(GL_FRAMEBUFFER, fbo.ID);
-
-	fbo.colorIDs.push_back(createColorAttachment(
-		width, height,
-		GL_RGB, GL_RGB, GL_UNSIGNED_BYTE,
-		GL_LINEAR, 0
-	));
-
-	fbo.depthRBO = createDepthRBO(width, height);
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-		cerr << "ERROR: Incomplete FBO!" << endl;
-		fbo.clear();
-	}
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-void createGBuffer(GBuffer &gb, int width, int height, string *uniformNames) {
-	// Create and bind framebuffer
-	glGenFramebuffers(1, &(gb.fbo.ID));
-	gb.fbo.width = width; gb.fbo.height = height;
-	glBindFramebuffer(GL_FRAMEBUFFER, gb.fbo.ID); // Bind fbo
+void createGBuffer(FBO &fbo, GBuffer &gb, int width, int height, string *uniformNames) {
+	gb.fbo = &fbo;
 
 
-	// gb.fbo.colorIDs.push_back(createColorAttachment(
-	// 	width, height,
-	// 	GL_R8, GL_RED,
-	// 	GL_UNSIGNED_BYTE,
-	// 	GL_NEAREST, 0
-	// ));
-	// gPosition
-	gb.fbo.colorIDs.push_back(createColorAttachment(
-		width, height, 
+	fbo.pushColorAttachment(
+		uniformNames[0],
 		GL_RGBA16F, GL_RGBA,
 		GL_FLOAT,
-		GL_NEAREST, 0
-	));
-	// gNormal
-	gb.fbo.colorIDs.push_back(createColorAttachment(
-		width, height, 
+		GL_NEAREST
+	);
+
+	fbo.pushColorAttachment(
+		uniformNames[1],
 		GL_RGBA16F, GL_RGBA,
 		GL_FLOAT,
-		GL_NEAREST, 1
-	));
-	// gAlbedoSpec
-	gb.fbo.colorIDs.push_back(createColorAttachment(
-		width, height, 
+		GL_NEAREST
+	);
+
+	fbo.pushColorAttachment(
+		uniformNames[2],
 		GL_RGBA, GL_RGBA,
-		GL_UNSIGNED_BYTE,
-		GL_NEAREST, 2
-	));
+		GL_FLOAT,
+		GL_NEAREST
+	);
 
-	unsigned int attachments[3] = {
-		GL_COLOR_ATTACHMENT0,
-		GL_COLOR_ATTACHMENT1,
-		GL_COLOR_ATTACHMENT2
-	};
+	fbo.init(width, height);
 
-	glDrawBuffers(3, attachments);
+	gb.getLocs(lightProg::ID);
 
-	for (int i = 0; i < gb.fbo.colorIDs.size(); i++) {
-		gb.locs.push_back(
-			glGetUniformLocation(lightProg::ID, uniformNames[i].c_str())
-		);
-	}
-
-	gb.fbo.depthRBO = createDepthRBO(width, height);
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-		cerr << "ERROR: Incomplete GBuffer::FBO!" << endl;
-	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind fbo
+
+	
+	// // Bind fbo
+	// glBindFramebuffer(GL_FRAMEBUFFER, gb.fbo->ID); 
+
+	// // gb.fbo->colorIDs.push_back(createColorAttachment(
+	// // 	width, height,
+	// // 	GL_R8, GL_RED,
+	// // 	GL_UNSIGNED_BYTE,
+	// // 	GL_NEAREST, 0
+	// // ));
+	// // gPosition
+	// gb.fbo->colorIDs.push_back(createColorAttachment(
+	// 	width, height, 
+	// 	GL_RGBA16F, GL_RGBA,
+	// 	GL_FLOAT,
+	// 	GL_NEAREST, 0
+	// ));
+	// // gNormal
+	// gb.fbo->colorIDs.push_back(createColorAttachment(
+	// 	width, height, 
+	// 	GL_RGBA16F, GL_RGBA,
+	// 	GL_FLOAT,
+	// 	GL_NEAREST, 1
+	// ));
+	// // gAlbedoSpec
+	// gb.fbo->colorIDs.push_back(createColorAttachment(
+	// 	width, height, 
+	// 	GL_RGBA, GL_RGBA,
+	// 	GL_UNSIGNED_BYTE,
+	// 	GL_NEAREST, 2
+	// ));
+
+	// unsigned int attachments[3] = {
+	// 	GL_COLOR_ATTACHMENT0,
+	// 	GL_COLOR_ATTACHMENT1,
+	// 	GL_COLOR_ATTACHMENT2
+	// };
+
+	// glDrawBuffers(3, attachments);
+
+	// for (int i = 0; i < gb.fbo->colorIDs.size(); i++) {
+	// 	gb.locs.push_back(
+	// 		glGetUniformLocation(lightProg::ID, uniformNames[i].c_str())
+	// 	);
+	// }
+
+	// gb.fbo->depthRBO = createDepthRBO(width, height);
+	// if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+	// 	cerr << "ERROR: Incomplete GBuffer::FBO!" << endl;
+	// }
+
+	// glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind fbo
 }
 
 	///// END FUNCTIONS : START CALLBACKS /////
@@ -700,7 +621,7 @@ int main(int argc, char **argv) {
 	geoMeshProg::getLocations();
 	lightProg::getLocations();
 
-		/// CREATE LIGHTS ///
+	// 	/// CREATE LIGHTS ///
 	lightProg::createLight(glm::vec3(-1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), 0);
 	lightProg::createLight(glm::vec3( 0.0f, 1.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), 1);
 	lightProg::createLight(glm::vec3( 1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), 2);
@@ -711,8 +632,9 @@ int main(int argc, char **argv) {
 	glfwGetFramebufferSize(window, &frameWidth, &frameHeight);
 
 	GBuffer gb;
+	FBO fbo;
 	createGBuffer(
-		gb, frameWidth, frameHeight, new string[3] { "gPosition", "gNormal", "gAlbedoSpec" }
+		fbo, gb, frameWidth, frameHeight, new string[3] { "gPosition", "gNormal", "gAlbedoSpec" }
 	);
 
 	// **Load and create textures
