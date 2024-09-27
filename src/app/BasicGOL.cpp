@@ -21,7 +21,7 @@
 #include "MeshGLData.hpp" // Create, draw, and clear meshes
 #include "GLSetup.hpp" // Setup GL
 #include "Shader.hpp" // Compile and init shaders
-#include "Buffer.hpp"
+#include "Buffer.hpp" // GBuffer / FBO
 
 #include <assimp/Importer.hpp> // For importing 3D models
 #include <assimp/scene.h> // For aiScene type
@@ -34,7 +34,7 @@ using namespace std;
 
 #define PI	3.14159265f
 
-#define GL_CLEAR_COLOR	0.0f, 0.2f, 0.25f, 1.0f
+#define GL_CLEAR_COLOR	0.0f, 0.0f, 0.0f, 1.0f
 #define VERTEX_COLOR	1.0f, 1.0f, 1.0f, 1.0f
 
 #define GLOBAL_X	glm::vec3(1,0,0)
@@ -45,47 +45,16 @@ using namespace std;
 #define NEAR_PLANE	0.001f
 #define FAR_PLANE	100.0f
 
-#define MOVE_SPEED		0.1f
-#define MOVE_SPEED_SLOW 0.006f
-#define MOUSE_SENS		6.0f
-#define MIN_ANGLE_FROM_Y (1.0f / 128.0f)
-
-#define LIGHT_CNT	4
-
 #define SHADER_DIR	std::string("./src/shaders/BasicGOL/")
 
 #define QUAD_SCALE	1.0f
 
 	///// END DEFINES : START STRUCTS AND STUFF /////
 
-struct PointLight {
-	glm::vec4 pos = glm::vec4(0,0,0,1);
-	glm::vec4 color = glm::vec4(1,1,1,1);
-	GLint posLoc = -1;
-	GLint colorLoc = -1;
-};
-
 namespace lightProg {
-	PointLight lights[LIGHT_CNT];
 	MeshGL renderArea;
 	float aspectRatio;
-
 	GLuint ID = 0;
-
-	// Light locations are in lights[] -- This SHOULD be changed later
-	GLuint cameraPosLoc = 0;
-
-	void getLocations() {
-		cout << "\tLIGHTING PROGRAM: " << endl;
-		cout << "LOT NOT'S HERE CUZ YOU'RE AN UNORGANIZED DUMBASS, FIX IT MJ" << endl;
-
-		cameraPosLoc = glGetUniformLocation(ID, "cameraPos");
-
-		if (DEBUG_MODE) {
-			cout << "\tLIGHTING PROGRAM: "	<< endl;
-			cout << "cameraPosLoc: "		<< cameraPosLoc << endl;
-		}
-	}
 
 	
 	void createScreenQuad(glm::vec2 c1 = glm::vec2(QUAD_SCALE), glm::vec2 c2 = glm::vec2(-QUAD_SCALE)) {
@@ -135,40 +104,12 @@ namespace lightProg {
 		createMeshGL(quad, renderArea);
 	}
 
-	// Creates a light, creates uniform locations for them, and places it in lights[index]
-	void createLight(glm::vec3 pos, glm::vec4 color, unsigned int index) {
-		if (index >= LIGHT_CNT) {
-			cerr << "ERROR: Attempt to create light with index (" << index << ") that exceeds LIGHT_CNT (" << LIGHT_CNT << ")" << endl;
-			return;
-		}
-
-		string colorLoc_str = "lights[" + to_string(index) + "].color";
-		string posLoc_str = "lights[" + to_string(index) + "].pos";
-
-		PointLight light;
-		light.pos = glm::vec4(pos, 1.0f);
-		light.color = color;
-		light.posLoc = glGetUniformLocation(lightProg::ID, posLoc_str.c_str());
-		light.colorLoc = glGetUniformLocation(lightProg::ID, colorLoc_str.c_str());
-
-		if (DEBUG_MODE) {
-			cout << posLoc_str << "Loc: " << light.posLoc << endl;
-			cout << colorLoc_str << "Loc: " << light.colorLoc << endl;
-		}
-
-		lights[index] = light;
+	void getLocations() {
+		// Does nothing for the time being
 	}
-	
-	void use(glm::vec3 &cameraPos) {
-		// Pass in camera position
-		glUniform3fv(cameraPosLoc, 1, glm::value_ptr(cameraPos));
 
-		// Pass in lights
-		for (unsigned int i = 0; i < LIGHT_CNT; i++) {
-            glm::vec4 lightPos = lightProg::lights[i].pos;
-			glUniform4fv(lightProg::lights[i].posLoc, 1, glm::value_ptr(lightPos));
-			glUniform4fv(lightProg::lights[i].colorLoc, 1, glm::value_ptr(lightProg::lights[i].color));
-		}
+	void use() {
+		// Does nothing for the time being
 	}
 
 	void draw() {
@@ -351,17 +292,6 @@ glm::vec3 vpsize = glm::vec3(0.0f, 0.0f, 1.0f); // Width, height, aspect ratio
 
 	///// END GLOBALS : START FUNCTIONS /////
 
-// Rotate an object about a point and axis by an angle
-glm::mat4 makeLocalRotate(glm::vec3 point, glm::vec3 axis, float angle, bool isInDegrees = true) {
-	if (isInDegrees) angle = glm::radians(angle);
-
-	glm::mat4 toOrigin = glm::translate(-point);
-	glm::mat4 rotMat = glm::rotate(angle, glm::normalize(axis));
-	glm::mat4 fromOrigin = glm::translate(point);
-
-	return fromOrigin * rotMat * toOrigin;
-}
-
 // Set the corers of the viewport
 void setViewport(glm::vec2 c1, glm::vec2 c2) {
 	boundBetween(c1, 0.0f, 1.0f);
@@ -390,99 +320,19 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		shift_pressed = (action == GLFW_PRESS);
 	}
 	
-	bool isMoving = false;
+	// If key was pressed or "repeat-pressed"
 	if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-		glm::vec3 move_direction = glm::vec3(0,0,0);
+		// Check keypresses
 		switch (key) {
 		case GLFW_KEY_ESCAPE:
 			glfwSetWindowShouldClose(window, GL_TRUE);
 			break;
-		// Movement WASD + Q/E for up/down
-		case GLFW_KEY_W:
-			move_direction += glm::normalize(camera_lookat-camera_eye);
-			isMoving = true;
-			break;
-		case GLFW_KEY_S:
-			move_direction += glm::normalize(camera_eye-camera_lookat);
-			isMoving = true;
-			break;
-		case GLFW_KEY_D:
-			move_direction += glm::normalize(glm::cross(camera_lookat-camera_eye, GLOBAL_Y));
-			isMoving = true;
-			break;
-		case GLFW_KEY_A:
-			move_direction += glm::normalize(glm::cross(camera_eye-camera_lookat, GLOBAL_Y));
-			isMoving = true;
-			break;
-		case GLFW_KEY_Q:
-			move_direction += -GLOBAL_Y;
-			isMoving = true;
-			break;
-		case GLFW_KEY_E:
-			move_direction += GLOBAL_Y;
-			isMoving = true;
-			break;
-		}
-		
-		if (isMoving) {
-			if (shift_pressed) {
-				camera_lookat += move_direction * MOVE_SPEED_SLOW;
-				camera_eye += move_direction * MOVE_SPEED_SLOW;
-			}
-			else {
-				camera_lookat += move_direction * MOVE_SPEED;
-				camera_eye += move_direction * MOVE_SPEED;
-			}
 		}
 	}
 }
 
 static void mouse_position_callback(GLFWwindow* window, double xpos, double ypos) {
-	// Change in mouse position
-	glm::vec2 relMouse = glm::vec2(xpos-last_mouse_pos.x, ypos-last_mouse_pos.y);
-
-	// Scale relMouse by the screen width/height
-	int width, height;
-	glfwGetFramebufferSize(window, &width, &height);
-	relMouse.x /= (float)width, relMouse.y /= (float)height;
-	glm::vec2 rotation = glm::vec2(MOUSE_SENS * relMouse);
-
-	
-	// Get camera X/Z axes
-	glm::vec3 camera_facing = glm::normalize(camera_lookat - camera_eye); // Normalize for good measure
-	glm::vec3 camera_x_axis = glm::cross(glm::vec3(0,1,0), camera_facing);
-
-	// Rotate about global Y
-	camera_lookat = glm::vec3(
-		makeLocalRotate(camera_eye, GLOBAL_Y, -rotation.x, false) *
-		glm::vec4(camera_lookat, 1)
-	);
-
-	// Get the dot between the camera's z and the global Y (or negative of Y, if rotating down)
-	float face_dot = glm::dot(camera_facing, negSign(rotation.y) * GLOBAL_Y);
-	// Get the largest allowed dot
-	float range_dot = glm::cos(abs(rotation.y) + MIN_ANGLE_FROM_Y);
-
-	// If rotation about X is okay
-	if (face_dot < range_dot) {
-		// Rotate camera about X
-		camera_lookat = glm::vec3(
-			makeLocalRotate(camera_eye, camera_x_axis, rotation.y, false) *
-			glm::vec4(camera_lookat, 1)
-		);
-	}
-	// Otherwise, max out rotation about X
-	else {
-		// Get angle needed to max out the rotation about X
-		float angle_to_max = sign(rotation.y) * (glm::acos(face_dot) - MIN_ANGLE_FROM_Y);
-		// Rotate camera about X
-		camera_lookat = glm::vec3(
-			makeLocalRotate(camera_eye, camera_x_axis, angle_to_max, false) *
-			glm::vec4(camera_lookat, 1)
-		);
-	}
-
-	last_mouse_pos = glm::vec2(xpos, ypos);
+	// Unused for now
 }
 
 
@@ -507,8 +357,9 @@ int main(int argc, char **argv) {
 	double mx, my;
 	glfwGetCursorPos(window, &mx, &my);
 	last_mouse_pos = glm::vec2(mx, my);
-	// Hide cursor
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+	// // Hide cursor
+	// glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	// Set callbacks
 	glfwSetKeyCallback(window, key_callback);
@@ -532,17 +383,29 @@ int main(int argc, char **argv) {
 		exit(EXIT_FAILURE);
 	}
 
-		/// CREATE TRANSFORMATION MATRICES ///
 	geoMeshProg::getLocations();
 	lightProg::getLocations();
 
-	// 	/// CREATE LIGHTS ///
-	lightProg::createLight(glm::vec3(-1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), 0);
-	lightProg::createLight(glm::vec3( 0.0f, 1.0f, 1.0f), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), 1);
-	lightProg::createLight(glm::vec3( 1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f), 2);
-	lightProg::createLight(glm::vec3( 0.0f, 0.0f, -1.0f), glm::vec4(1.0f, 1.0f, 1.0f, 0.2f), 3);
 
-		/// CREATE GBUFFER ///
+	// Enable depth testing
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+	glDepthMask(GL_TRUE);
+
+	// Enable backface culling
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CCW);
+
+
+
+
+	// Set viewport size (relative to window size?)
+	setViewport(glm::vec2(0.0f, 1.0f), glm::vec2(1.0f, 0.0f));
+	print(bottomleft);
+	print(vpsize);
+
+	// Get framebuffer size
 	int frameWidth, frameHeight;
 	glfwGetFramebufferSize(window, &frameWidth, &frameHeight);
 
@@ -559,68 +422,16 @@ int main(int argc, char **argv) {
 
 	gb.getLocs(lightProg::ID);
 
-	// **Load and create textures
 
 		/// CREATE MESHES ///
-
-	geoMeshProg::importScene(file);
-
+	geoMeshProg::importScene(file); // Can call this as many times as you like with whatever models instead of "file"
 	lightProg::createScreenQuad();
 
 
-	// Enable depth testing
-	glEnable(GL_DEPTH_TEST);
-	glDepthFunc(GL_LESS);
-	glDepthMask(GL_TRUE);
-
-	// Enable backface culling
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
-	glFrontFace(GL_CCW);
-
-	setViewport(glm::vec2(0.0f, 1.0f), glm::vec2(1.0f, 0.0f));
-	print(bottomleft);
-	print(vpsize);
-
-
-		/// INITIAL GEOMETRY PASS ///
-
-	// Set viewport size
-	int fwidth, fheight;
-	glfwGetFramebufferSize(window, &fwidth, &fheight);
-	glViewport(
-		(int)((float)fwidth*bottomleft.x), 
-		(int)((float)fheight*bottomleft.y),
-		(int)((float)fwidth*vpsize.x), 
-		(int)((float)fheight*vpsize.y)
-	);
-
-	// Get aspect ratio of window
-	float aspect_ratio = 1.0f;
-	if (fwidth != 0 && fheight != 0) {
-		aspect_ratio = (float)fwidth / (float)fheight;
-		aspect_ratio *= vpsize.z; // vpsize.z = aspect ratio of viewport
-	}
-
-
-		/// GEOMETRY PASS ////
-	gb.bind();
-	glClearColor(0.0, 0.0, 0.0, 1.0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		/// DRAW THE INITAL CONDITIONS
-	// Create view and projection matrices
-	glm::mat4 viewMat = glm::lookAt(camera_eye, camera_lookat, GLOBAL_Y);
-	glm::mat4 projMat = glm::perspective(glm::radians(FOV), aspect_ratio, NEAR_PLANE, FAR_PLANE);
-	glm::mat4 viewProjMat = projMat * viewMat;
-	// Setup mesh program
-	geoMeshProg::use(viewProjMat);
-	// Render meshes
-	geoMeshProg::renderAll();
-
-	gb.unbind();
-
-	while(!glfwWindowShouldClose(window)) {
+		/// INITIAL GEOMETRY PASS | SETS INITAL CONDITIONS ///
+	if (!glfwWindowShouldClose(window)) {
+		// Set viewport size
+		int fwidth, fheight;
 		glfwGetFramebufferSize(window, &fwidth, &fheight);
 		glViewport(
 			(int)((float)fwidth*bottomleft.x), 
@@ -630,7 +441,46 @@ int main(int argc, char **argv) {
 		);
 
 		// Get aspect ratio of window
-		aspect_ratio = 1.0f;
+		float aspect_ratio = 1.0f;
+		if (fwidth != 0 && fheight != 0) {
+			aspect_ratio = (float)fwidth / (float)fheight;
+			aspect_ratio *= vpsize.z; // vpsize.z = aspect ratio of viewport
+		}
+
+		gb.bind();
+		glClearColor(GL_CLEAR_COLOR);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			/// DRAW THE INITAL CONDITIONS
+		// Create view and projection matrices
+		glm::mat4 viewMat = glm::lookAt(camera_eye, camera_lookat, GLOBAL_Y);
+		glm::mat4 projMat = glm::perspective(glm::radians(FOV), aspect_ratio, NEAR_PLANE, FAR_PLANE);
+		glm::mat4 viewProjMat = projMat * viewMat;
+
+		// Setup mesh program
+		geoMeshProg::use(viewProjMat);
+
+		// Render meshes
+		geoMeshProg::renderAll();
+			/// END DRAWING ///
+
+
+		gb.unbind();
+	}
+
+	while(!glfwWindowShouldClose(window)) {
+		// Set viewport size
+		int fwidth, fheight;
+		glfwGetFramebufferSize(window, &fwidth, &fheight);
+		glViewport(
+			(int)((float)fwidth*bottomleft.x), 
+			(int)((float)fheight*bottomleft.y),
+			(int)((float)fwidth*vpsize.x), 
+			(int)((float)fheight*vpsize.y)
+		);
+
+		// Get aspect ratio of window
+		float aspect_ratio = 1.0f;
 		if (fwidth != 0 && fheight != 0) {
 			aspect_ratio = (float)fwidth / (float)fheight;
 			aspect_ratio *= vpsize.z; // vpsize.z = aspect ratio of viewport
@@ -646,7 +496,7 @@ int main(int argc, char **argv) {
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		lightProg::use(camera_eye);
+		lightProg::use();
 		lightProg::draw();
 
 		gb.unuse();
