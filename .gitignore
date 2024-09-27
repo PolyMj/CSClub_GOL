@@ -1,0 +1,10 @@
+# Ignored directories
+build/
+.vscode/**
+# Unignore launch configuration
+!.vscode/launch.json
+
+# Ignored files
+**TEMP**
+**.exe
+*.exe
