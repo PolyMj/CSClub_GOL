@@ -1,6 +1,6 @@
 #include "Buffer.hpp"
 
-#define WRAPPING    GL_MIRROR_CLAMP_TO_EDGE
+#define WRAPPING    GL_REPEAT
 
 
 	/// FBO MEMBER FUNCTIONS ///

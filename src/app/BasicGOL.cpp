@@ -45,6 +45,8 @@ using namespace std;
 #define NEAR_PLANE	0.001f
 #define FAR_PLANE	100.0f
 
+#define FRAMETIME	int(1000.0 / FPS)
+
 #define SHADER_DIR	std::string("./src/shaders/BasicGOL/")
 
 #define QUAD_SCALE	1.0f
@@ -627,7 +629,7 @@ int main(int argc, char **argv) {
 		glfwPollEvents();
 
 		// Sleep for 15ms
-		this_thread::sleep_for(chrono::milliseconds(500));
+		this_thread::sleep_for(chrono::milliseconds(FRAMETIME));
 
 		// Swap GBuffer pointers
 		std::swap(stepProg::gbuffA, stepProg::gbuffB);

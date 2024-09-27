@@ -16,8 +16,8 @@ void main() {
     bool is_alive = uint(texture(lifeBool, interUV)) > 0;
 
     uint near_life = 0;
-    for (int i = 1; i <= RAD; ++i) {
-        for (int j = 1; j <= RAD; ++j) {
+    for (int i = 0; i <= RAD; ++i) {
+        for (int j = (i == 0 ? 1 : 0); j <= RAD; ++j) {
             float iinc = i*inc_x, jinc = j*inc_y;
             near_life += uint(texture(lifeBool, interUV + vec2(iinc, jinc)));
             near_life += uint(texture(lifeBool, interUV + vec2(iinc, -jinc)));
