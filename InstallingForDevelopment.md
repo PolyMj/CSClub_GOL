@@ -69,6 +69,7 @@ Download [Souce Code](https://github.com/assimp/assimp/releases)
 
 # Vulkan
 ... I'll write this part later
+Or, if you can get the package to install properly, you just need GLM. For some reason I can't get GLM to install properly on Windows though, only on Linux
 
 
 # stb_image(_write)

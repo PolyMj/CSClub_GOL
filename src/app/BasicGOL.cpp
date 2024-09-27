@@ -51,7 +51,7 @@ using namespace std;
 
 #define LIGHT_CNT	4
 
-#define SHADER_DIR	std::string("./src/shaders/DeferredRender/")
+#define SHADER_DIR	std::string("./src/shaders/BasicGOL/")
 
 #define QUAD_SCALE	1.0f
 
