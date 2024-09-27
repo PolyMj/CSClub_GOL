@@ -2,9 +2,44 @@
 
 #define WRAPPING    GL_MIRROR_CLAMP_TO_EDGE
 
-// Create a color attachment (output for fragment shaders)
-// Remember that format determines how many elements (e.g. float vs. vec2 vs. vec3)
-unsigned int createColorAttachment(
+
+	/// FBO MEMBER FUNCTIONS ///
+
+
+// Called after pushing color attachemnts (see .pushColorAttatchment())
+void FBO::init(int width, int height) {
+	// Create and bind framebuffer
+	glGenFramebuffers(1, &ID);
+	this->width = width; 
+	this->height = height;
+	this->is_init = true;
+	glBindFramebuffer(GL_FRAMEBUFFER, ID);
+
+	vector<unsigned int> colAttsGL;
+	colAttsGL.reserve(colorAtts.size());
+
+	for (int i = 0; i < colorAtts.size(); ++i) {
+		ColorAttach &colAtt = colorAtts[i];
+		colAtt.colorID = createColorAttachment(
+			width, height,
+			colAtt.internal, colAtt.format, colAtt.type,
+			colAtt.texFilter, i
+		);
+
+		colAttsGL.push_back(GL_COLOR_ATTACHMENT0 + i);
+	};
+
+	glDrawBuffers(colAttsGL.size(), colAttsGL.data());
+
+	depthRBO = createDepthRBO(width, height);
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		cerr << "ERROR: Incomplete GBuffer::FBO!" << endl;
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+};
+
+// Create a color attachment (i.e. an element of the frambuffer like color, position, etc.)
+unsigned int FBO::createColorAttachment(
 	int width, int height,
 	int internal, int format, 
 	int type,
@@ -26,11 +61,11 @@ unsigned int createColorAttachment(
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 	return texID;
-}
+};
 
 
 // Create a renderbuffer
-unsigned int createDepthRBO(int width, int height) {
+unsigned int FBO::createDepthRBO(int width, int height) {
 	// Generate an rbo
 	unsigned int rbo = 0;
 	glGenRenderbuffers(1, &rbo);
@@ -43,26 +78,36 @@ unsigned int createDepthRBO(int width, int height) {
 	
 	glBindRenderbuffer(GL_RENDERBUFFER, 0); // Unbind rbo
 	return rbo;
-}
+};
 
-// // Create a basic FBO
-// void createFBO(FBO &fbo, int width, int height) {
-// 	fbo.clear();
-// 	glGenFramebuffers(1, &(fbo.ID));
-// 	fbo.width = width; fbo.height = height;
-// 	glBindFramebuffer(GL_FRAMEBUFFER, fbo.ID);
 
-// 	fbo.colorIDs.push_back(createColorAttachment(
-// 		width, height,
-// 		GL_RGB, GL_RGB, GL_UNSIGNED_BYTE,
-// 		GL_LINEAR, 0
-// 	));
+	/// GBuffer MEMBER FUNCTIONS
 
-// 	fbo.depthRBO = createDepthRBO(width, height);
-// 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-// 		cerr << "ERROR: Incomplete FBO!" << endl;
-// 		fbo.clear();
-// 	}
 
-// 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-// }
+
+// Uses the GBuGBuffer::ffer as input. Make sure to use to correct program with the correct GBuffer
+void GBuffer::use() {
+	for (int i = 0; i < locs.size(); i++) {
+		glActiveTexture(GL_TEXTURE0 + i);
+		glBindTexture(GL_TEXTURE_2D, fbo->colorAtts.at(i).colorID);
+		glUniform1i(locs.at(i), i);
+	};
+};
+
+// Stop using the GBuffer as input
+void GBuffer::unuse() {
+	for (int i = 0; i < locs.size(); i++) {
+		glActiveTexture(GL_TEXTURE0 + i);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	};
+};
+
+// Get uniform locations of all color attachments from the associated FBO
+void GBuffer::getLocs(GLuint programID) {
+	for (int i = 0; i < fbo->colorAtts.size(); ++i) {
+		locs.push_back(
+			glGetUniformLocation(programID, fbo->colorAtts[i].uniform_name.c_str())
+		);
+		cout << "Loc (" << fbo->colorAtts[i].uniform_name.c_str() << "):" << fbo->colorAtts[i].colorID << endl;
+	};
+};

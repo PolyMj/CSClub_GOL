@@ -548,8 +548,8 @@ int main(int argc, char **argv) {
 
 	// Create FBO
 	FBO fbo;
-	fbo.pushVec4fttachment("gPosition");
-	fbo.pushVec4fttachment("gNormal");
+	fbo.pushVec4fAttachment("gPosition");
+	fbo.pushVec4fAttachment("gNormal");
 	fbo.pushRGBAttachment("gAlbedoSpec");
 	fbo.init(frameWidth, frameHeight);
 
@@ -604,7 +604,7 @@ int main(int argc, char **argv) {
 
 
 		/// GEOMETRY PASS ////
-	gb.startGeometry();
+	gb.bind();
 	glClearColor(0.0, 0.0, 0.0, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -618,7 +618,7 @@ int main(int argc, char **argv) {
 	// Render meshes
 	geoMeshProg::renderAll();
 
-	gb.endGeomtry();
+	gb.unbind();
 
 	while(!glfwWindowShouldClose(window)) {
 		glfwGetFramebufferSize(window, &fwidth, &fheight);
@@ -638,7 +638,7 @@ int main(int argc, char **argv) {
 
 			/// LIGHTING PASS ///
 		glUseProgram(lightProg::ID);
-		gb.startLighting();
+		gb.use();
 
 		glViewport(0, 0, fwidth, fheight);
 
@@ -649,7 +649,7 @@ int main(int argc, char **argv) {
 		lightProg::use(camera_eye);
 		lightProg::draw();
 
-		gb.endLighting();
+		gb.unuse();
 		glUseProgram(0);
 
 			/// DISPLAY ///
