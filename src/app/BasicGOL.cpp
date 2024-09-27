@@ -380,91 +380,6 @@ void setViewport(glm::vec2 c1, glm::vec2 c2) {
 	else { vpsize.z = 1.0f; }
 }
 
-void createGBuffer(FBO &fbo, GBuffer &gb, int width, int height, string *uniformNames) {
-	gb.fbo = &fbo;
-
-
-	fbo.pushColorAttachment(
-		uniformNames[0],
-		GL_RGBA16F, GL_RGBA,
-		GL_FLOAT,
-		GL_NEAREST
-	);
-
-	fbo.pushColorAttachment(
-		uniformNames[1],
-		GL_RGBA16F, GL_RGBA,
-		GL_FLOAT,
-		GL_NEAREST
-	);
-
-	fbo.pushColorAttachment(
-		uniformNames[2],
-		GL_RGBA, GL_RGBA,
-		GL_FLOAT,
-		GL_NEAREST
-	);
-
-	fbo.init(width, height);
-
-	gb.getLocs(lightProg::ID);
-
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind fbo
-
-	
-	// // Bind fbo
-	// glBindFramebuffer(GL_FRAMEBUFFER, gb.fbo->ID); 
-
-	// // gb.fbo->colorIDs.push_back(createColorAttachment(
-	// // 	width, height,
-	// // 	GL_R8, GL_RED,
-	// // 	GL_UNSIGNED_BYTE,
-	// // 	GL_NEAREST, 0
-	// // ));
-	// // gPosition
-	// gb.fbo->colorIDs.push_back(createColorAttachment(
-	// 	width, height, 
-	// 	GL_RGBA16F, GL_RGBA,
-	// 	GL_FLOAT,
-	// 	GL_NEAREST, 0
-	// ));
-	// // gNormal
-	// gb.fbo->colorIDs.push_back(createColorAttachment(
-	// 	width, height, 
-	// 	GL_RGBA16F, GL_RGBA,
-	// 	GL_FLOAT,
-	// 	GL_NEAREST, 1
-	// ));
-	// // gAlbedoSpec
-	// gb.fbo->colorIDs.push_back(createColorAttachment(
-	// 	width, height, 
-	// 	GL_RGBA, GL_RGBA,
-	// 	GL_UNSIGNED_BYTE,
-	// 	GL_NEAREST, 2
-	// ));
-
-	// unsigned int attachments[3] = {
-	// 	GL_COLOR_ATTACHMENT0,
-	// 	GL_COLOR_ATTACHMENT1,
-	// 	GL_COLOR_ATTACHMENT2
-	// };
-
-	// glDrawBuffers(3, attachments);
-
-	// for (int i = 0; i < gb.fbo->colorIDs.size(); i++) {
-	// 	gb.locs.push_back(
-	// 		glGetUniformLocation(lightProg::ID, uniformNames[i].c_str())
-	// 	);
-	// }
-
-	// gb.fbo->depthRBO = createDepthRBO(width, height);
-	// if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-	// 	cerr << "ERROR: Incomplete GBuffer::FBO!" << endl;
-	// }
-
-	// glBindFramebuffer(GL_FRAMEBUFFER, 0); // Unbind fbo
-}
 
 	///// END FUNCTIONS : START CALLBACKS /////
 
@@ -631,11 +546,18 @@ int main(int argc, char **argv) {
 	int frameWidth, frameHeight;
 	glfwGetFramebufferSize(window, &frameWidth, &frameHeight);
 
-	GBuffer gb;
+	// Create FBO
 	FBO fbo;
-	createGBuffer(
-		fbo, gb, frameWidth, frameHeight, new string[3] { "gPosition", "gNormal", "gAlbedoSpec" }
-	);
+	fbo.pushVec4fttachment("gPosition");
+	fbo.pushVec4fttachment("gNormal");
+	fbo.pushRGBAttachment("gAlbedoSpec");
+	fbo.init(frameWidth, frameHeight);
+
+	// Create GBuffer to point to the FBO
+	GBuffer gb;
+	gb.fbo = &fbo;
+
+	gb.getLocs(lightProg::ID);
 
 	// **Load and create textures
 

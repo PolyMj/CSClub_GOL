@@ -43,12 +43,52 @@ struct FBO {
     };
 
     // Appends a new set of color attachment parameters
-    void pushColorAttachment(string unifName, int internal, int format, int type, int texFilter) {
+    inline void pushColorAttachment(string unifName, int internal, int format, int type, int texFilter) {
         colorAtts.push_back(ColorAttach{
             unifName,
-            internal,
-            format,
-            type,
+            internal, format, type,
+            texFilter
+        });
+    };
+
+        /// PRESETS
+    // RGB
+    inline void pushRGBttachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_RGB, GL_RGB, GL_FLOAT,
+            texFilter
+        });
+    };
+    // RGBA
+    inline void pushRGBAttachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_RGBA, GL_RGBA, GL_FLOAT,
+            texFilter
+        });
+    };
+    // Vec3f
+    inline void pushVec3fttachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_RGB16F, GL_RGB, GL_FLOAT,
+            texFilter
+        });
+    };
+    // Vec4f
+    inline void pushVec4fttachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_RGBA16F, GL_RGBA, GL_FLOAT,
+            texFilter
+        });
+    };
+    // Byte (0-255)
+    inline void pushByteAttachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_R8, GL_RED, GL_UNSIGNED_BYTE,
             texFilter
         });
     };
@@ -87,7 +127,7 @@ struct FBO {
 };
 
 struct GBuffer {
-	FBO *fbo;
+	const FBO *fbo;
 	vector<int> locs;
 
 	inline void startGeometry() {

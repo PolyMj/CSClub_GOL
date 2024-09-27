@@ -25,9 +25,17 @@ uniform PointLight lights[LIGHT_CNT];
 #define INCREMENT   0.001
 #define RAD         24
 
+float len(vec3 v) {
+    v.x = max(0, v.x);
+    v.y = max(0, v.y);
+    v.z = max(0, v.z);
+    return sqrt(v.x*v.x + v.y*v.y + v.z*v.z);
+}
+
 void main() {
     vec4 interAlbedoSpec = texture(gAlbedoSpec, interUV);
     vec4 interNormal = texture(gNormal, interUV);
+    vec4 interPosition = texture(gPosition, interUV);
 
 
     for (int i = 1; i <= RAD; ++i) {
@@ -43,5 +51,5 @@ void main() {
     interAlbedoSpec /= pow(2*RAD-1,2);
 
 
-    out_color = interAlbedoSpec;
+    out_color = vec4(len(interAlbedoSpec.rgb), len(interNormal.rgb), len(interPosition.rgb), 1.0);
 }

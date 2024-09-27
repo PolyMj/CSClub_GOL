@@ -1,5 +1,7 @@
 #include "Buffer.hpp"
 
+#define WRAPPING    GL_MIRROR_CLAMP_TO_EDGE
+
 // Create a color attachment (output for fragment shaders)
 // Remember that format determines how many elements (e.g. float vs. vec2 vs. vec3)
 unsigned int createColorAttachment(
@@ -17,8 +19,8 @@ unsigned int createColorAttachment(
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, texFilter);
 
 	// Will probably need to be optional if actual textures are used rather than only gbuffers
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRROR_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRROR_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, WRAPPING);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, WRAPPING);
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorAttach, GL_TEXTURE_2D, texID, 0);
 
