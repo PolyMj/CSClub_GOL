@@ -31,6 +31,16 @@ struct FBO {
         depthRBO = 0;
     };
 
+    // Bind the FBO to output
+	inline void bind() {
+		glBindFramebuffer(GL_FRAMEBUFFER, ID);
+	};
+
+    // Unbind the FBO; no longer use as output
+	inline void unbind() {
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	};
+
     // Called after pushing color attachemnts (see .pushColorAttatchment())
     void init(int width, int height);
 
@@ -104,7 +114,7 @@ struct FBO {
     inline void pushVec2fAttachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
-            GL_RG16F, GL_RGB, GL_FLOAT,
+            GL_RG16F, GL_RG, GL_FLOAT,
             texFilter
         });
     };
@@ -112,16 +122,27 @@ struct FBO {
     inline void pushFloatAttachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
-            GL_RG16F, GL_RGB, GL_FLOAT,
+            GL_R16F, GL_R, GL_FLOAT,
             texFilter
         });
     };
-// BYTES //
+// INTS //
+    // Vec4 of ints
+    inline void pushVec4iAttachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_RGBA8I, GL_RGBA, GL_FLOAT,
+            texFilter
+        });
+    };
+
+
+// UINT BYTES //
     // Vec4 of bytes (0-255)
     inline void pushVec4xByteAttachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
-            GL_RGBA8, GL_RED, GL_UNSIGNED_BYTE,
+            GL_RGBA8UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT,
             texFilter
         });
     };
@@ -129,15 +150,15 @@ struct FBO {
     inline void pushVec3xByteAttachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
-            GL_RGB8, GL_RED, GL_UNSIGNED_BYTE,
+            GL_RGB8UI, GL_RGB_INTEGER, GL_UNSIGNED_INT,
             texFilter
         });
     };
-    // Vec3 of bytes (0-255)
+    // Vec2 of bytes (0-255)
     inline void pushVec2xByteAttachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
-            GL_RG8, GL_RED, GL_UNSIGNED_BYTE,
+            GL_RG8UI, GL_RG_INTEGER, GL_UNSIGNED_INT,
             texFilter
         });
     };
@@ -145,7 +166,7 @@ struct FBO {
     inline void pushByteAttachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
-            GL_R8, GL_RED, GL_UNSIGNED_BYTE,
+            GL_R8UI, GL_RED_INTEGER, GL_UNSIGNED_INT,
             texFilter
         });
     };
@@ -184,12 +205,12 @@ struct GBuffer {
 	const FBO *fbo;
 	vector<int> locs;
 
-    // Bind the GBuffer to output
+    // Bind the underlying FBO to output
 	inline void bind() {
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo->ID);
 	};
 
-    // Unbind the GBuffer; no longer use as output
+    // Unbind the underlying FBO; no longer use as output
 	inline void unbind() {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	};

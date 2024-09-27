@@ -34,6 +34,32 @@ void FBO::init(int width, int height) {
 	depthRBO = createDepthRBO(width, height);
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
 		cerr << "ERROR: Incomplete GBuffer::FBO!" << endl;
+		switch(glCheckFramebufferStatus(GL_FRAMEBUFFER)) {
+			case GL_FRAMEBUFFER_UNDEFINED:
+				cout << "UNDEFINED" << endl;
+				break;
+			case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+				cout << "INCOMPLETE_ATTACHMENT" << endl;
+				break;
+			case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+				cout << "INCOMPLETE_MISSING_ATTACHMENT" << endl;
+				break;
+			case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER:
+				cout << "INCOMPLETE_DRAW_BUFFER" << endl;
+				break;
+			case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER:
+				cout << "INCOMPLETE_READ_BUFFER" << endl;
+				break;
+			case GL_FRAMEBUFFER_UNSUPPORTED:
+				cout << "UNSUPPORTED" << endl;
+				break;
+			case GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE:
+				cout << "INCOMPLETE_MULTISAMPLE" << endl;
+				break;
+			default:
+				cout << "Something else" << endl;
+				break;
+		}
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 };
@@ -108,6 +134,6 @@ void GBuffer::getLocs(GLuint programID) {
 		locs.push_back(
 			glGetUniformLocation(programID, fbo->colorAtts[i].uniform_name.c_str())
 		);
-		cout << "Loc (" << fbo->colorAtts[i].uniform_name.c_str() << "):" << fbo->colorAtts[i].colorID << endl;
+		cout << "Loc (" << fbo->colorAtts[i].uniform_name.c_str() << ") = " << fbo->colorAtts[i].colorID << endl;
 	};
 };

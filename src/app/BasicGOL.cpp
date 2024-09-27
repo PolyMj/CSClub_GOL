@@ -51,10 +51,12 @@ using namespace std;
 
 	///// END DEFINES : START STRUCTS AND STUFF /////
 
-namespace lightProg {
+namespace displayProg {
 	MeshGL renderArea;
 	float aspectRatio;
 	GLuint ID = 0;
+	GBuffer *gbuffA;
+	GBuffer *gbuffB;
 
 	
 	void createScreenQuad(glm::vec2 c1 = glm::vec2(QUAD_SCALE), glm::vec2 c2 = glm::vec2(-QUAD_SCALE)) {
@@ -110,6 +112,84 @@ namespace lightProg {
 
 	void use() {
 		// Does nothing for the time being
+	}
+
+	void draw() {
+		drawMesh(renderArea);
+	}
+}
+
+namespace stepProg {
+	MeshGL renderArea;
+	float aspectRatio;
+	GLuint ID = 0;
+	GBuffer *gbuffA;
+	GBuffer *gbuffB;
+
+	GLuint xIncLoc = 0;
+	GLuint yIncLoc = 0;
+
+	
+	void createScreenQuad(glm::vec2 c1 = glm::vec2(QUAD_SCALE), glm::vec2 c2 = glm::vec2(-QUAD_SCALE)) {
+		c1 = maxAxes(c1, c2);
+		c2 = minAxes(c1, c2);
+
+		float width = c1.x - c2.x;
+		float height = c1.y - c2.y;
+
+		aspectRatio = 1.0f;
+		if (width != 0 && height != 0) {
+			aspectRatio = (float)width / (float)height;
+		}
+		
+		Mesh quad;
+
+		Vertex v0;
+		v0.position = glm::vec3(c2.x, c2.y, 0.0f);
+		v0.color = glm::vec4(0,1,0,1);
+		v0.normal = glm::normalize(glm::vec3(-1,-1,1));
+		v0.texcoord = glm::vec2(0,0);
+		quad.vertices.push_back(v0);
+
+		Vertex v1;
+		v1.position = glm::vec3(c1.x, c2.y, 0.0f);
+		v1.color = glm::vec4(0.5,0.5,0,1);
+		v1.normal = glm::normalize(glm::vec3(1,-1,1));
+		v1.texcoord = glm::vec2(1,0);
+		quad.vertices.push_back(v1);
+
+		Vertex v2;
+		v2.position = glm::vec3(c2.x, c1.y, 0.0f);
+		v2.color = glm::vec4(0,1,1,1);
+		v2.normal = glm::normalize(glm::vec3(-1,1,1));
+		v2.texcoord = glm::vec2(0,1);
+		quad.vertices.push_back(v2);
+
+		Vertex v3;
+		v3.position = glm::vec3(c1.x, c1.y, 0.0f);
+		v3.color = glm::vec4(0,0,1,1);
+		v3.normal = glm::normalize(glm::vec3(1,1,1));
+		v3.texcoord = glm::vec2(1,1);
+		quad.vertices.push_back(v3);
+
+		quad.indices = { 0, 1, 2, 1, 3, 2 };
+
+		createMeshGL(quad, renderArea);
+	}
+
+	void getLocations() {
+		xIncLoc	= glGetUniformLocation(ID, "inc_x");
+		yIncLoc	= glGetUniformLocation(ID, "inc_y");
+		if (DEBUG_MODE) {
+			cout << "inc_x: " << xIncLoc << endl;
+			cout << "inc_y: " << yIncLoc << endl;
+		}
+	}
+
+	void use(int width, int height) {
+		glUseProgram(ID);
+		glUniform1f(xIncLoc, 1.0f / float(width));
+		glUniform1f(yIncLoc, 1.0f / float(height));
 	}
 
 	void draw() {
@@ -374,17 +454,15 @@ int main(int argc, char **argv) {
 
 	// Create a load shaders
 	try {
-		geoMeshProg::ID = loadAndCreateShaderProgram(SHADER_DIR + "GeoMesh.vs", SHADER_DIR + "GeoMesh.fs");
-		lightProg::ID = loadAndCreateShaderProgram(SHADER_DIR + "Light.vs", SHADER_DIR + "LightDebug.fs");
+		geoMeshProg::ID = loadAndCreateShaderProgram(SHADER_DIR + "GeoMesh.vs",	SHADER_DIR + "GeoMesh.fs");
+		displayProg::ID = loadAndCreateShaderProgram(SHADER_DIR + "Display.vs",	SHADER_DIR + "Display.fs");
+		stepProg::ID	= loadAndCreateShaderProgram(SHADER_DIR + "Step.vs",	SHADER_DIR + "Step.fs");
 	}
 	catch (exception e) {
 		// Close program
 		cleanupGLFW(window);
 		exit(EXIT_FAILURE);
 	}
-
-	geoMeshProg::getLocations();
-	lightProg::getLocations();
 
 
 	// Enable depth testing
@@ -400,6 +478,9 @@ int main(int argc, char **argv) {
 
 
 
+
+	geoMeshProg::getLocations();
+
 	// Set viewport size (relative to window size?)
 	setViewport(glm::vec2(0.0f, 1.0f), glm::vec2(1.0f, 0.0f));
 	print(bottomleft);
@@ -410,22 +491,43 @@ int main(int argc, char **argv) {
 	glfwGetFramebufferSize(window, &frameWidth, &frameHeight);
 
 	// Create FBO
-	FBO fbo;
-	fbo.pushVec4fAttachment("gPosition");
-	fbo.pushVec4fAttachment("gNormal");
-	fbo.pushRGBAttachment("gAlbedoSpec");
-	fbo.init(frameWidth, frameHeight);
+	FBO fboA;
+	FBO fboB;
+	fboA.pushByteAttachment("lifeBool");
+	fboB.pushByteAttachment("lifeBool");
+	fboA.init(frameWidth, frameHeight);
+	fboB.init(frameWidth, frameHeight);
 
-	// Create GBuffer to point to the FBO
-	GBuffer gb;
-	gb.fbo = &fbo;
+	// If using integer framebuffers
+	glDisable(GL_DITHER);
 
-	gb.getLocs(lightProg::ID);
+	// Initialize GBuffers
+	GBuffer dgbA; displayProg::gbuffA = &dgbA;
+	GBuffer sgbA; stepProg::gbuffA = &sgbA;
+	GBuffer dgbB; displayProg::gbuffB = &dgbB;
+	GBuffer sgbB; stepProg::gbuffB = &sgbB;
+
+
+	// Point to the FBO
+	displayProg::gbuffA->fbo	= &fboA;
+	stepProg::gbuffA->fbo 		= &fboA;
+	displayProg::gbuffB->fbo	= &fboB;
+	stepProg::gbuffB->fbo		= &fboB;
+
+	displayProg::gbuffA->getLocs(displayProg::ID);
+	stepProg::gbuffA->getLocs(stepProg::ID);
+	displayProg::gbuffB->getLocs(displayProg::ID);
+	stepProg::gbuffB->getLocs(stepProg::ID);
+
+	// Get uniforms for step program
+	glUseProgram(stepProg::ID);
+	stepProg::getLocations();
 
 
 		/// CREATE MESHES ///
 	geoMeshProg::importScene(file); // Can call this as many times as you like with whatever models instead of "file"
-	lightProg::createScreenQuad();
+	displayProg::createScreenQuad();
+	stepProg::createScreenQuad();
 
 
 		/// INITIAL GEOMETRY PASS | SETS INITAL CONDITIONS ///
@@ -447,7 +549,7 @@ int main(int argc, char **argv) {
 			aspect_ratio *= vpsize.z; // vpsize.z = aspect ratio of viewport
 		}
 
-		gb.bind();
+		fboA.bind();
 		glClearColor(GL_CLEAR_COLOR);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -465,7 +567,7 @@ int main(int argc, char **argv) {
 			/// END DRAWING ///
 
 
-		gb.unbind();
+		fboA.unbind();
 	}
 
 	while(!glfwWindowShouldClose(window)) {
@@ -486,29 +588,50 @@ int main(int argc, char **argv) {
 			aspect_ratio *= vpsize.z; // vpsize.z = aspect ratio of viewport
 		}
 
-			/// LIGHTING PASS ///
-		glUseProgram(lightProg::ID);
-		gb.use();
+			/// STEP ///
+		glUseProgram(stepProg::ID);
+		glViewport(0, 0, fboA.width, fboA.height);
+		stepProg::gbuffA->use();	// Read from A
+		stepProg::gbuffB->bind();	// Write to B
+
+		// Clear framebuffer
+		glClearColor(GL_CLEAR_COLOR);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		stepProg::use(fboA.width, fboA.height);
+		stepProg::draw();
+
+		stepProg::gbuffA->unuse();
+		stepProg::gbuffB->unbind();
+		glUseProgram(0);
+
+
+			/// DISPLAY ///
+		glUseProgram(displayProg::ID);
+		displayProg::gbuffB->use(); // Read from B
 
 		glViewport(0, 0, fwidth, fheight);
 
 		// Clear framebuffer
-		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+		glClearColor(GL_CLEAR_COLOR);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		lightProg::use();
-		lightProg::draw();
+		displayProg::use();
+		displayProg::draw();
 
-		gb.unuse();
+		displayProg::gbuffB->unuse();
 		glUseProgram(0);
 
-			/// DISPLAY ///
-		// Swap buffers and poll for window events
+		// Swap framebuffers and poll for window events
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
 		// Sleep for 15ms
-		this_thread::sleep_for(chrono::milliseconds(5));
+		this_thread::sleep_for(chrono::milliseconds(500));
+
+		// Swap GBuffer pointers
+		std::swap(stepProg::gbuffA, stepProg::gbuffB);
+		std::swap(displayProg::gbuffA, displayProg::gbuffB);
 	}
 
 	geoMeshProg::cleanup();
@@ -516,7 +639,7 @@ int main(int argc, char **argv) {
 	// Cleanup shader program
 	glUseProgram(0);
 	glDeleteProgram(geoMeshProg::ID);
-	glDeleteProgram(lightProg::ID);
+	glDeleteProgram(displayProg::ID);
 
 	// Destroy window and stop GLFW
 	cleanupGLFW(window);
