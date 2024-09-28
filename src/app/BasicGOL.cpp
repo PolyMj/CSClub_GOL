@@ -22,10 +22,7 @@
 #include "GLSetup.hpp" // Setup GL
 #include "Shader.hpp" // Compile and init shaders
 #include "Buffer.hpp" // GBuffer / FBO
-
-#include <assimp/Importer.hpp> // For importing 3D models
-#include <assimp/scene.h> // For aiScene type
-#include <assimp/postprocess.h> // For postprocessing flags
+#include "Scene.hpp" // For importing scenes
 
 using namespace std;
 
@@ -200,19 +197,6 @@ namespace stepProg {
 }
 
 namespace geoMeshProg {
-	struct Scene {
-		vector<MeshGL> allMeshes;
-		const aiScene* ais;
-	};
-
-	Assimp::Importer importer;
-	unsigned int DEFAULT_FLAGS = (
-		aiProcess_Triangulate | 
-		aiProcess_FlipUVs | 
-		aiProcess_GenNormals | 
-		aiProcess_JoinIdenticalVertices
-	);
-
 	vector<Scene> allScenes;
 
 	GLuint ID = 0;
@@ -274,88 +258,14 @@ namespace geoMeshProg {
 		}
 	}
 	
-	// Get data from aiMesh (mesh) and place it into a Mesh (m)
-	void extractMeshData(aiMesh *mesh, Mesh &m) {
-		// Clear vertices/indicies
-		m.vertices.clear();
-		m.indices.clear();
-
-		// Loop through vertices
-		for (unsigned int i = 0; i < mesh->mNumVertices; i++) {
-			// Create a Vertex
-			Vertex v;
-			v.color = glm::vec4(VERTEX_COLOR);
-
-			// Get vertex position infor from mesh and store it in the new Vertex
-			aiVector3D aiV = mesh->mVertices[i];
-			v.position = glm::vec3(aiV[0], aiV[1], aiV[2]);
-
-			// Get normal for the vertex
-			aiVector3D aiN = mesh->mNormals[i];
-			v.normal = glm::vec3(aiN[0], aiN[1], aiN[2]);
-			
-			// Add new vertex to the mesh
-			m.vertices.push_back(v);
-		}
-
-		// Loop through all faces
-		for (unsigned int i = 0; i < mesh->mNumFaces; i++) {
-			// Get aiFace
-			aiFace aiF = mesh->mFaces[i];
-
-			// For each vert index in the face, add index to m.indices
-			for (unsigned int j = 0; j < aiF.mNumIndices; j++) {
-				m.indices.push_back(aiF.mIndices[j]);
-			}
-		}
-	}
-
-	// Creates a Scene struct and adds it do allScenes
-	void importScene(char *file, int flags = DEFAULT_FLAGS) {
-		Scene scene = {
-			vector<MeshGL>(),
-			importer.ReadFile(file, flags)
-		};
-
-		// Import file
-
-		// Check for errors when loading the aiScene
-		if (scene.ais == NULL) {
-			cerr << "Object Load Error: Resulting scene is NULL | ";
-			cerr << importer.GetErrorString() << endl;
-			exit(1);
-		}
-		if (scene.ais->mFlags & AI_SCENE_FLAGS_INCOMPLETE) {
-			cerr << "Object Load Error: Flags incomplete" << endl;
-			exit(1);
-		}
-		if (scene.ais->mRootNode == NULL) {
-			cerr << "Object Load Error: Root node is NULL" << endl;
-			exit(1);
-		}
-
-		
-		// Create list of meshes
-		for (unsigned int i = 0; i < scene.ais->mNumMeshes; i++) {
-			// Get Mesh
-			Mesh m;
-			extractMeshData(scene.ais->mMeshes[i], m);
-			// Convert to MeshGL
-			MeshGL mgl;
-			createMeshGL(m, mgl);
-			// Add MeshGL
-			scene.allMeshes.push_back(mgl);
-		}
-
-		allScenes.push_back(scene);
+	void importScene(char *file) {
+		allScenes.push_back(importSceneFromFile(file));
 	}
 
 	// Cleanup all meshes
 	void cleanup() {
 		for (Scene &scene : allScenes) {
-			for (int i = 0; i < scene.allMeshes.size(); i++) {
-				cleanupMesh(scene.allMeshes.at(i));
-			}
+			scene.cleanup();
 		}
 	}
 }
