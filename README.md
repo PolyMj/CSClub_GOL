@@ -70,7 +70,3 @@ Download [Souce Code](https://github.com/assimp/assimp/releases)
 # Vulkan
 ... I'll write this part later
 Or, if you can get the package to install properly, you just need GLM. For some reason I can't get GLM to install properly on Windows though, only on Linux
-
-
-# stb_image(_write)
-Download [stb_image.h](https://raw.githubusercontent.com/nothings/stb/master/stb_image.h) and [stb_image_write.h](https://raw.githubusercontent.com/nothings/stb/master/stb_image_write.h) and place each of them in your project (e.g. in project/src/include/)
