@@ -23,6 +23,20 @@ struct FBO {
     vector<ColorAttach> colorAtts;
     unsigned int depthRBO;
 
+    FBO() = default;
+    FBO(const FBO &other) {
+        this->colorAtts = vector<ColorAttach>(other.colorAtts);
+
+        if (other.is_init) {
+            this->init(other.width, other.height);
+        }
+        else {
+            this->width = other.width;
+            this->height = other.height;
+            is_init = false;
+        }
+    };
+
     void clear() {
         ID = 0;
         width = 0;
@@ -203,7 +217,6 @@ struct FBO {
 
 struct GBuffer {
 	const FBO *fbo;
-	vector<int> locs;
 
     // Bind the underlying FBO to output
 	inline void bind() {
@@ -216,11 +229,39 @@ struct GBuffer {
 	};
 
     // Uses the GBuffer as input. Make sure to use to correct program with the correct GBuffer
-	void use();
+	void use(const vector<GLuint> &locs);
 
     // Stop using the GBuffer as input
-	void unuse();
+	void unuse(const vector<GLuint> &locs);
 
     // Get uniform locations of all color attachments from the associated FBO
-    void getLocs(GLuint programID);
+    void getLocs(GLuint programID, vector<GLuint> &locs);
+};
+
+struct GDBuffer : GBuffer {
+    const FBO *fboBack;
+    int height, width;
+
+    GDBuffer() = default;
+    GDBuffer(const FBO &newFbo) {
+        if (!newFbo.is_init) {
+            cerr << "ERROR: FBO must be initialized before placment in GDBuffer" << endl;
+            exit(-1);
+        }
+
+        fbo = &newFbo;
+        fboBack = new FBO(newFbo);
+
+        this->width = newFbo.width;
+        this->height = newFbo.height;
+    };
+
+    // Bind the underlying FBO to output
+	inline void bind() {
+		glBindFramebuffer(GL_FRAMEBUFFER, fboBack->ID);
+	};
+
+    inline void swap() {
+        std::swap(fbo, fboBack);
+    };
 };

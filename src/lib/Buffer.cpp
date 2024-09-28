@@ -112,7 +112,7 @@ unsigned int FBO::createDepthRBO(int width, int height) {
 
 
 // Uses the GBuGBuffer::ffer as input. Make sure to use to correct program with the correct GBuffer
-void GBuffer::use() {
+void GBuffer::use(const vector<GLuint> &locs) {
 	for (int i = 0; i < locs.size(); i++) {
 		glActiveTexture(GL_TEXTURE0 + i);
 		glBindTexture(GL_TEXTURE_2D, fbo->colorAtts.at(i).colorID);
@@ -121,7 +121,7 @@ void GBuffer::use() {
 };
 
 // Stop using the GBuffer as input
-void GBuffer::unuse() {
+void GBuffer::unuse(const vector<GLuint> &locs) {
 	for (int i = 0; i < locs.size(); i++) {
 		glActiveTexture(GL_TEXTURE0 + i);
 		glBindTexture(GL_TEXTURE_2D, 0);
@@ -129,7 +129,7 @@ void GBuffer::unuse() {
 };
 
 // Get uniform locations of all color attachments from the associated FBO
-void GBuffer::getLocs(GLuint programID) {
+void GBuffer::getLocs(GLuint programID, vector<GLuint> &locs) {
 	for (int i = 0; i < fbo->colorAtts.size(); ++i) {
 		locs.push_back(
 			glGetUniformLocation(programID, fbo->colorAtts[i].uniform_name.c_str())

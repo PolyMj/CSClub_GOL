@@ -42,8 +42,6 @@ using namespace std;
 #define NEAR_PLANE	0.001f
 #define FAR_PLANE	100.0f
 
-#define FRAMETIME	int(1000.0 / FPS)
-
 #define SHADER_DIR	std::string("./src/shaders/BasicGOL/")
 
 #define QUAD_SCALE	1.0f
@@ -54,8 +52,7 @@ namespace displayProg {
 	MeshGL renderArea;
 	float aspectRatio;
 	GLuint ID = 0;
-	GBuffer *gbuffA;
-	GBuffer *gbuffB;
+	vector<GLuint> gbLocs;
 
 	
 	void createScreenQuad(glm::vec2 c1 = glm::vec2(QUAD_SCALE), glm::vec2 c2 = glm::vec2(-QUAD_SCALE)) {
@@ -122,8 +119,7 @@ namespace stepProg {
 	MeshGL renderArea;
 	float aspectRatio;
 	GLuint ID = 0;
-	GBuffer *gbuffA;
-	GBuffer *gbuffB;
+	vector<GLuint> gbLocs;
 
 	GLuint xIncLoc = 0;
 	GLuint yIncLoc = 0;
@@ -281,6 +277,10 @@ glm::vec2 last_mouse_pos = glm::vec2(0,0);
 glm::vec2 bottomleft = glm::vec2(1.0f);
 glm::vec3 vpsize = glm::vec3(0.0f, 0.0f, 1.0f); // Width, height, aspect ratio
 
+bool is_stepping = false;
+
+int FRAMETIME = int(1000.0 / FPS);
+
 
 	///// END GLOBALS : START FUNCTIONS /////
 
@@ -319,6 +319,17 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		case GLFW_KEY_ESCAPE:
 			glfwSetWindowShouldClose(window, GL_TRUE);
 			break;
+		case GLFW_KEY_SPACE:
+			is_stepping = !is_stepping;
+			break;
+		case GLFW_KEY_UP:
+			FRAMETIME = std::max(1, std::min(1000, FRAMETIME + int(float(1 + FRAMETIME / 20.0f))));
+			cout << "Frametime = " << FRAMETIME << endl;
+			break;
+		case GLFW_KEY_DOWN:
+			FRAMETIME = std::max(1, std::min(1000, FRAMETIME - int(float(1 + FRAMETIME / 20.0f))));
+			cout << "Frametime = " << FRAMETIME << endl;
+			break;
 		}
 	}
 }
@@ -342,7 +353,7 @@ int main(int argc, char **argv) {
 	}
 
 	// Create window & create OpenGL context
-	GLFWwindow* window = setupGLFW("Draw Some Meshes", WINDOW_WIDTH, WINDOW_HEIGHT, DEBUG_MODE);
+	GLFWwindow* window = setupGLFW("Press Space to Pause/Play", WINDOW_WIDTH, WINDOW_HEIGHT, DEBUG_MODE);
 	setupGLEW(window);
 
 	// Get current mouse pos
@@ -403,35 +414,21 @@ int main(int argc, char **argv) {
 	glfwGetFramebufferSize(window, &frameWidth, &frameHeight);
 
 	// Create FBO
-	FBO fboA;
-	FBO fboB;
-	fboA.pushByteAttachment("lifeBool");
-	fboB.pushByteAttachment("lifeBool");
-	fboA.init(frameWidth, frameHeight);
-	fboB.init(frameWidth, frameHeight);
+	FBO fbo;
+	fbo.pushByteAttachment("lifeBool");
+	fbo.init(GAME_WIDTH, GAME_HEIGHT);
 
 	// If using integer framebuffers
 	glDisable(GL_DITHER);
 
-	// Initialize GBuffers
-	GBuffer dgbA; displayProg::gbuffA = &dgbA;
-	GBuffer sgbA; stepProg::gbuffA = &sgbA;
-	GBuffer dgbB; displayProg::gbuffB = &dgbB;
-	GBuffer sgbB; stepProg::gbuffB = &sgbB;
+	// Initialize GDBuffer
+	GDBuffer gbuff = GDBuffer(fbo);
 
+	// Get buffer uniform locations per programs
+	gbuff.getLocs(stepProg::ID, stepProg::gbLocs);
+	gbuff.getLocs(displayProg::ID, displayProg::gbLocs);
 
-	// Point to the FBO
-	displayProg::gbuffA->fbo	= &fboA;
-	stepProg::gbuffA->fbo 		= &fboA;
-	displayProg::gbuffB->fbo	= &fboB;
-	stepProg::gbuffB->fbo		= &fboB;
-
-	displayProg::gbuffA->getLocs(displayProg::ID);
-	stepProg::gbuffA->getLocs(stepProg::ID);
-	displayProg::gbuffB->getLocs(displayProg::ID);
-	stepProg::gbuffB->getLocs(stepProg::ID);
-
-	// Get uniforms for step program
+	// Get other uniforms for step program
 	glUseProgram(stepProg::ID);
 	stepProg::getLocations();
 
@@ -448,10 +445,7 @@ int main(int argc, char **argv) {
 		int fwidth, fheight;
 		glfwGetFramebufferSize(window, &fwidth, &fheight);
 		glViewport(
-			(int)((float)fwidth*bottomleft.x), 
-			(int)((float)fheight*bottomleft.y),
-			(int)((float)fwidth*vpsize.x), 
-			(int)((float)fheight*vpsize.y)
+			0, 0, GAME_WIDTH, GAME_HEIGHT
 		);
 
 		// Get aspect ratio of window
@@ -461,7 +455,8 @@ int main(int argc, char **argv) {
 			aspect_ratio *= vpsize.z; // vpsize.z = aspect ratio of viewport
 		}
 
-		fboA.bind();
+		// Bind and clear gbuffer
+		gbuff.bind(); // Write to gbuff
 		glClearColor(GL_CLEAR_COLOR);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -479,10 +474,41 @@ int main(int argc, char **argv) {
 			/// END DRAWING ///
 
 
-		fboA.unbind();
+		gbuff.unbind(); // Stop writing to gbuff
+		gbuff.swap(); // Swap internal buffers
 	}
 
 	while(!glfwWindowShouldClose(window)) {
+		
+
+			/// STEP ///
+		if (is_stepping) {
+			// Setup program stuff
+			glUseProgram(stepProg::ID);
+			glViewport(0, 0, gbuff.width, gbuff.height);
+
+			// Use/bind gbuff
+			gbuff.use(stepProg::gbLocs); // Read from gbuff
+			gbuff.bind(); // Write to gbuff
+
+			// Clear framebuffer
+			glClearColor(GL_CLEAR_COLOR);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			// Perform step
+			stepProg::use(gbuff.width, gbuff.height);
+			stepProg::draw();
+			glUseProgram(0);
+
+			// Unbind/unuse and swap
+			gbuff.unuse(stepProg::gbLocs); // Stop reading from gbuff
+			gbuff.unbind(); // Stop writing to gbuff
+			gbuff.swap(); // Swap internal buffers
+		}
+
+
+			/// DISPLAY ///
+		
 		// Set viewport size
 		int fwidth, fheight;
 		glfwGetFramebufferSize(window, &fwidth, &fheight);
@@ -500,50 +526,30 @@ int main(int argc, char **argv) {
 			aspect_ratio *= vpsize.z; // vpsize.z = aspect ratio of viewport
 		}
 
-			/// STEP ///
-		glUseProgram(stepProg::ID);
-		glViewport(0, 0, fboA.width, fboA.height);
-		stepProg::gbuffA->use();	// Read from A
-		stepProg::gbuffB->bind();	// Write to B
+		
+		glUseProgram(displayProg::ID); // Use display program
+		glViewport(0, 0, fwidth, fheight); // Set viewport
+
+		gbuff.use(displayProg::gbLocs); // Read from gbuff
+
 
 		// Clear framebuffer
 		glClearColor(GL_CLEAR_COLOR);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		stepProg::use(fboA.width, fboA.height);
-		stepProg::draw();
-
-		stepProg::gbuffA->unuse();
-		stepProg::gbuffB->unbind();
-		glUseProgram(0);
-
-
-			/// DISPLAY ///
-		glUseProgram(displayProg::ID);
-		displayProg::gbuffB->use(); // Read from B
-
-		glViewport(0, 0, fwidth, fheight);
-
-		// Clear framebuffer
-		glClearColor(GL_CLEAR_COLOR);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+		// Display game status
 		displayProg::use();
 		displayProg::draw();
 
-		displayProg::gbuffB->unuse();
+		gbuff.unuse(displayProg::gbLocs); // Stop reading gbuff
 		glUseProgram(0);
 
 		// Swap framebuffers and poll for window events
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
-		// Sleep for 15ms
+		// Sleep for a bit
 		this_thread::sleep_for(chrono::milliseconds(FRAMETIME));
-
-		// Swap GBuffer pointers
-		std::swap(stepProg::gbuffA, stepProg::gbuffB);
-		std::swap(displayProg::gbuffA, displayProg::gbuffB);
 	}
 
 	geoMeshProg::cleanup();
