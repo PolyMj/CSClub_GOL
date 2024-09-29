@@ -41,3 +41,8 @@ set(ALL_LIBRARIES ${Vulkan_LIBRARIES} ${ASSIMP_LIBRARIES} ${ASSIMP_ZLIB} glfw GL
 add_executable(BasicGOL ${GENERAL_SOURCES} "./src/app/BasicGOL.cpp")
 target_link_libraries(BasicGOL ${ALL_LIBRARIES})
 install(TARGETS BasicGOL RUNTIME DESTINATION bin/BasicGOL)
+
+# FloatingGOL
+add_executable(FloatingGOL ${GENERAL_SOURCES} "./src/app/FloatingGOL.cpp")
+target_link_libraries(FloatingGOL ${ALL_LIBRARIES})
+install(TARGETS FloatingGOL RUNTIME DESTINATION bin/FloatingGOL)

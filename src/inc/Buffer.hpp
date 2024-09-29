@@ -136,7 +136,7 @@ struct FBO {
     inline void pushFloatAttachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
-            GL_R16F, GL_R, GL_FLOAT,
+            GL_R16F, GL_RED, GL_FLOAT,
             texFilter
         });
     };
