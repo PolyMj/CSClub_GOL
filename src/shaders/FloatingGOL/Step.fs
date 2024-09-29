@@ -16,7 +16,7 @@ uniform float inc_y;
 #define AGE_RATE    0.0002
 #define REV_RATE    0.95 // Gets flickery past 0.99
 
-#define SPREAD      0.001
+#define SPREAD      0.0015
 
 #define SAFE_LOWER  0.3
 #define SAFE_HIGHER 0.55
@@ -24,7 +24,7 @@ uniform float inc_y;
 
 #define LIFE_THRESH 0.0
 
-#define REVIVE_LOW  0.45
+#define REVIVE_LOW  0.5
 #define REVIVE_HIGH 1.0
 #define REVIVE_MID  0.6
 
