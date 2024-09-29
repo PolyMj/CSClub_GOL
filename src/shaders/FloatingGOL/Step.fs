@@ -9,14 +9,14 @@ uniform sampler2D life;
 uniform float inc_x;
 uniform float inc_y;
 
-#define RAD         16
+#define RAD         24
 
 
 #define SAFE_INC    0.1
 #define AGE_RATE    0.0002
-#define REV_RATE    0.9
+#define REV_RATE    0.95 // Gets flickery past 0.99
 
-#define SPREAD      0.0001
+#define SPREAD      0.001
 
 #define SAFE_LOWER  0.3
 #define SAFE_HIGHER 0.55
@@ -24,7 +24,7 @@ uniform float inc_y;
 
 #define LIFE_THRESH 0.0
 
-#define REVIVE_LOW  LIFE_THRESH
+#define REVIVE_LOW  0.45
 #define REVIVE_HIGH 1.0
 #define REVIVE_MID  0.6
 
