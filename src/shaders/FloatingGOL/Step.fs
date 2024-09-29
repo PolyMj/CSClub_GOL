@@ -9,11 +9,14 @@ uniform sampler2D life;
 uniform float inc_x;
 uniform float inc_y;
 
-#define RAD         6
+#define RAD         16
 
 
 #define SAFE_INC    0.1
+#define AGE_RATE    0.0002
 #define REV_RATE    0.9
+
+#define SPREAD      0.0001
 
 #define SAFE_LOWER  0.3
 #define SAFE_HIGHER 0.55
@@ -48,6 +51,8 @@ void main() {
     near_life = near_life / (pow(RAD+1, 2) - 1);
 
     if (is_alive) {
+        my_life -= AGE_RATE;
+        my_life = near_life * SPREAD + my_life * (1.0-SPREAD);
         if (near_life < SAFE_LOWER) {
             lifeOut = my_life * scalar(my_life, 0, SAFE_LOWER);
         }
