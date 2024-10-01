@@ -269,7 +269,7 @@ namespace geoMeshProg {
 	///// END STRUCTS : START GLOBALS /////
 
 glm::vec3 camera_eye = glm::vec3(0,0,1); // Location of the camera
-glm::vec3 camera_lookat = camera_eye + glm::normalize(-camera_eye); // Point that the camera is looking at (default = origin)
+glm::vec3 camera_lookat = glm::vec3(1,1,0); // Point that the camera is looking at (default = origin)
 
 glm::vec2 last_mouse_pos = glm::vec2(0,0);
 
@@ -279,7 +279,8 @@ glm::vec3 vpsize = glm::vec3(0.0f, 0.0f, 1.0f); // Width, height, aspect ratio
 
 bool is_stepping = false;
 
-int FRAMETIME = int(1000.0 / FPS);
+#define FRAMETIME_MAX 1000'000
+int FRAMETIME = int(1000'000.0 / FPS);
 
 
 	///// END GLOBALS : START FUNCTIONS /////
@@ -323,11 +324,11 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 			is_stepping = !is_stepping;
 			break;
 		case GLFW_KEY_UP:
-			FRAMETIME = std::max(1, std::min(1000, FRAMETIME + int(float(1 + FRAMETIME / 20.0f))));
+			FRAMETIME = std::max(1, std::min(FRAMETIME_MAX, FRAMETIME + int(float(1 + FRAMETIME / 20.0f))));
 			cout << "Frametime = " << FRAMETIME << endl;
 			break;
 		case GLFW_KEY_DOWN:
-			FRAMETIME = std::max(1, std::min(1000, FRAMETIME - int(float(1 + FRAMETIME / 20.0f))));
+			FRAMETIME = std::max(1, std::min(FRAMETIME_MAX, FRAMETIME - int(float(1 + FRAMETIME / 20.0f))));
 			cout << "Frametime = " << FRAMETIME << endl;
 			break;
 		}
@@ -549,7 +550,7 @@ int main(int argc, char **argv) {
 		glfwPollEvents();
 
 		// Sleep for a bit
-		this_thread::sleep_for(chrono::milliseconds(FRAMETIME));
+		this_thread::sleep_for(chrono::nanoseconds(FRAMETIME));
 	}
 
 	geoMeshProg::cleanup();

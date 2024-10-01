@@ -1,6 +1,6 @@
 #pragma once
 
-#define FPS             500
+#define FPS             60
 
 #define DEBUG_MODE		true
 #define GLFW_MAJOR		4
