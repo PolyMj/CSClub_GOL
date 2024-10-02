@@ -550,7 +550,10 @@ int main(int argc, char **argv) {
 		glfwPollEvents();
 
 		// Sleep for a bit
-		this_thread::sleep_for(chrono::nanoseconds(FRAMETIME));
+		if (FRAMETIME < 1'000)
+			this_thread::sleep_for(chrono::nanoseconds(FRAMETIME));
+		else
+			this_thread::sleep_for(chrono::milliseconds(FRAMETIME / 1000));
 	}
 
 	geoMeshProg::cleanup();
