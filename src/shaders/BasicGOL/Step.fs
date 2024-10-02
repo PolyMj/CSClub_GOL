@@ -11,20 +11,53 @@ uniform float inc_y;
 
 #define RAD         1
 
+// get pixel relative to pixel of interest
+uint getP(int i, int j) {
+    return uint(texture(lifeBool, interUV + vec2(i*inc_x, j*inc_y)));
+}
+
+// Gets a pixel and its symmetric pixel (negative of relative position)
+uint getPiP(int i, int j) {
+    return  uint(texture(lifeBool, interUV + vec2(i*inc_x, j*inc_y)))
+          + uint(texture(lifeBool, interUV + vec2(-i*inc_x, -j*inc_y)));;
+}
+
 
 void main() {
+        /// GET PIXEL OF INTEREST ///
     bool is_alive = uint(texture(lifeBool, interUV)) > 0;
 
+
+        /// GET SUM OF NEARBY VALUES
     uint near_life = 0;
-    for (int i = 0; i <= RAD; ++i) {
-        for (int j = (i == 0 ? 1 : 0); j <= RAD; ++j) {
-            float iinc = i*inc_x, jinc = j*inc_y;
-            near_life += uint(texture(lifeBool, interUV + vec2(iinc, jinc)));
-            near_life += uint(texture(lifeBool, interUV + vec2(iinc, -jinc)));
-            near_life += uint(texture(lifeBool, interUV + vec2(-iinc, jinc)));
-            near_life += uint(texture(lifeBool, interUV + vec2(-iinc, -jinc)));
+    // For perimeter around pixel, grab an L-shape of pixels, and the negative positon of the L shape, forming a square
+    for (int r = 1; r <= RAD; ++r) {
+        // Get pixels along x/y axis
+        near_life += getPiP(r,0);
+        near_life += getPiP(0,r);
+        
+        // For all x values > 0 at the top of the perimeter
+        for (int i = 1; i <= RAD; ++i) {
+            // Get pixels at at (x,top)
+            near_life += getPiP(i,r);
+            near_life += getPiP(-i,r);
+        }
+
+        // For all RAD > y values > 1 at the side of the perimeter
+        for (int j = 1; j < RAD; ++j) {
+            // Get pixels at (side, y)
+            near_life += getPiP(r,j);
+            near_life += getPiP(r,-j);
         }
     }
+        /// END SUM ///
+
+
+    // NUMBER OF CELLS IN NEIGHBORHOOD:
+    // pow(2*RAD+1, 2) - Includes pixel of interest
+
+
+        /// CELL LOGIC ///
 
     if (is_alive) {
         if (near_life < 2) {
