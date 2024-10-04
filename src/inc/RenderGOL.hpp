@@ -33,16 +33,40 @@ using namespace std;
 #define GEO_SHAD_VS	"./src/shaders/General/GeoMesh1.vs"
 #define GEO_SHAD_FS	"./src/shaders/General/GeoMesh1.fs"
 
+#define MIN_FPS		10
+#define MIN_SPF		1
+
 float ASPECT_RATIO;
 MeshGL SCREEN_QUAD;
 GDBuffer gbuff;
 
 GLFWwindow *window;
 
-int FRAMETIME = int(1000.0 / FPS);
+size_t STEPTIME = 1'000'000 / (STEP_PER_FRAME*TARGET_FPS);
 bool is_stepping = false;
 
 bool shift_pressed = false;
+
+int steps_per_frame = STEP_PER_FRAME;
+int frames_per_second = TARGET_FPS;
+size_t disp_step = 0;
+
+inline void recompute_frametime() {
+	STEPTIME = 1'000'000 / (steps_per_frame*frames_per_second);
+	cout << "FPS = " << frames_per_second 
+		<< " | Steps per Frame = " << steps_per_frame 
+		<< " | Steptime (ns) = " << STEPTIME << endl;
+}
+
+inline void spf(int inc) {
+	steps_per_frame = std::max(steps_per_frame+inc, MIN_SPF);
+	recompute_frametime();
+}
+
+inline void fps(int inc) {
+	frames_per_second = std::max(frames_per_second+inc, MIN_FPS);
+	recompute_frametime();
+}
 
 
 
@@ -206,14 +230,19 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 			break;
 		case GLFW_KEY_SPACE:
 			is_stepping = !is_stepping;
+			disp_step = 0;
 			break;
 		case GLFW_KEY_UP:
-			FRAMETIME = std::max(1, std::min(1000, FRAMETIME + int(float(1 + FRAMETIME / 20.0f))));
-			cout << "Frametime = " << FRAMETIME << endl;
+			spf(1);
 			break;
 		case GLFW_KEY_DOWN:
-			FRAMETIME = std::max(1, std::min(1000, FRAMETIME - int(float(1 + FRAMETIME / 20.0f))));
-			cout << "Frametime = " << FRAMETIME << endl;
+			spf(-1);
+			break;
+		case GLFW_KEY_RIGHT:
+			fps(1);
+			break;
+		case GLFW_KEY_LEFT:
+			fps(-1);
 			break;
 		}
 	}
@@ -299,6 +328,8 @@ int initRenderer(FBO &fbo, float &aspect_ratio,
 		aspect_ratio = float(fwidth) / float(fheight);
 	}
 
+	disp_step = 0;
+
 	return(0);
 }
 
@@ -362,38 +393,46 @@ void drawingLoop() {
 
 
 			/// DISPLAY ///
-		
-		// Set viewport size
-		int fwidth, fheight;
-		glfwGetFramebufferSize(window, &fwidth, &fheight);
 
-		
-		glUseProgram(displayProg::ID); // Use display program
-		glViewport(0, 0, fwidth, fheight); // Set viewport
+		if (++disp_step >= steps_per_frame) {
+			disp_step = 0;
 
-		gbuff.use(displayProg::gbLocs); // Read from gbuff
+			// Set viewport size
+			int fwidth, fheight;
+			glfwGetFramebufferSize(window, &fwidth, &fheight);
+
+			
+			glUseProgram(displayProg::ID); // Use display program
+			glViewport(0, 0, fwidth, fheight); // Set viewport
+
+			gbuff.use(displayProg::gbLocs); // Read from gbuff
 
 
-		// Clear framebuffer
-		glClearColor(CLEAR_COLOR);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+			// Clear framebuffer
+			glClearColor(CLEAR_COLOR);
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// Display game status
-		displayProg::use();
-		displayProg::draw();
+			// Display game status
+			displayProg::use();
+			displayProg::draw();
 
-		gbuff.unuse(displayProg::gbLocs); // Stop reading gbuff
-		glUseProgram(0);
+			gbuff.unuse(displayProg::gbLocs); // Stop reading gbuff
+			glUseProgram(0);
 
-		// Swap framebuffers and poll for window events
-		glfwSwapBuffers(window);
+			// Swap framebuffers and poll for window events
+			glfwSwapBuffers(window);
+		}
+
 		glfwPollEvents();
-
+		
 		// Sleep for a bit
-		this_thread::sleep_for(chrono::milliseconds(FRAMETIME));
-
-		if (is_stepping)
-			cout << "FRAME" << endl;
+		if (STEPTIME < 1'000) {
+			this_thread::sleep_for(chrono::nanoseconds(STEPTIME));
+		}
+		else {
+			// this_thread::sleep_for(chrono::nanoseconds(STEPTIME % 1'000));
+			this_thread::sleep_for(chrono::milliseconds(STEPTIME / 1'000));
+		}
 	}
 }
 

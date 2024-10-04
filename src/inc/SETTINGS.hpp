@@ -4,7 +4,7 @@
 
 // New FPS/Step settings
 #define TARGET_FPS      60
-#define SPS             60
+#define STEP_PER_FRAME  1
 
 #define DEBUG_MODE		true
 #define GLFW_MAJOR		4
