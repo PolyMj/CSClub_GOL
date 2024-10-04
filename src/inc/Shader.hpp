@@ -1,7 +1,6 @@
 ///// Credits: Dr. Michael J. Reale //////
 
-#ifndef SHADER_H
-#define SHADER_H
+#pragma once
 
 #include <iostream>
 #include <fstream>
@@ -20,5 +19,3 @@ GLuint createAndCompileShader(const char *chaderCode, GLenum shaderType);
 GLuint createAndLinkShaderProgram(std::vector<GLuint> allShaderIDs);
 GLuint initShaderProgramFromSource(string vertexShaderCode, string fragmentShaderCode);
 GLuint loadAndCreateShaderProgram(const string &vertFile, const string &fragFile, bool debug = false);
-
-#endif

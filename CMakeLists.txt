@@ -46,3 +46,8 @@ install(TARGETS BasicGOL RUNTIME DESTINATION bin/BasicGOL)
 add_executable(FloatingGOL ${GENERAL_SOURCES} "./src/app/FloatingGOL.cpp")
 target_link_libraries(FloatingGOL ${ALL_LIBRARIES})
 install(TARGETS FloatingGOL RUNTIME DESTINATION bin/FloatingGOL)
+
+# GOL
+add_executable(GOL ${GENERAL_SOURCES} "./src/app/GOL.cpp")
+target_link_libraries(GOL ${ALL_LIBRARIES})
+install(TARGETS GOL RUNTIME DESTINATION bin/GOL)

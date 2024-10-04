@@ -1,7 +1,6 @@
 ///// Credit: Dr. Michael J. Reale /////
 
-#ifndef GL_SETUP_H
-#define GL_SETUP_H
+#pragma once
 
 #include <iostream>
 #include <fstream>
@@ -18,5 +17,3 @@ void cleanupGLFW(GLFWwindow* window);
 void setupGLEW(GLFWwindow* window);
 void checkOpenGLVersion();
 void checkAndSetupOpenGLDebugging();
-
-#endif

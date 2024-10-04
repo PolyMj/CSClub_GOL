@@ -1,6 +1,10 @@
 #pragma once
 
-#define FPS             60
+#define FPS             30
+
+// New FPS/Step settings
+#define TARGET_FPS      60
+#define SPS             60
 
 #define DEBUG_MODE		true
 #define GLFW_MAJOR		4

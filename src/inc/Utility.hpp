@@ -1,5 +1,4 @@
-#ifndef UTILITY_H
-#define UTILITY_H
+#pragma once
 
 #include <iostream>
 #include <assimp/scene.h>
@@ -176,5 +175,3 @@ inline glm::mat<N-D,N-D,T,Q> decreaseMatrixSize(glm::mat<N,N,T,Q> &oldMat) {
 
 	return newMat;
 }
-
-#endif
