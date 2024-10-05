@@ -1,6 +1,4 @@
 #include "RenderGOL.hpp"
-#include "Buffer.hpp"
-#include "Scene.hpp"
 using namespace std;
 
 #define STEP_FS "./src/shaders/FloatingGOL/Step.fs"
