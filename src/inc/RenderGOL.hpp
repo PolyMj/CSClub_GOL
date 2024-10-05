@@ -318,13 +318,12 @@ int initRenderer(FBO &fbo, float &aspect_ratio,
 
 	glDisable(GL_DITHER);
 
+	glClearColor(CLEAR_COLOR);
+
 		/// END OF RENDERING OPTIONS ///
 
-	glUseProgram(geoMeshProg::ID);
 	geoMeshProg::getLocations();
-	glUseProgram(displayProg::ID);
 	displayProg::getLocations();
-	glUseProgram(stepProg::ID);
 	stepProg::getLocations();
 	glUseProgram(0);
 
@@ -362,16 +361,17 @@ int initRenderer(FBO &fbo, float &aspect_ratio,
 	return(0);
 }
 
+inline void clearBuffer(bool color) {
+	glClear(GL_DEPTH_BUFFER_BIT | (color ? GL_COLOR_BUFFER_BIT : 0));
+}
+
 void drawGeometry(Scene &scene, bool clear = true, const glm::mat4 &transform = glm::mat4(1.0f)) {
 	gbuff.swap();
 	glViewport(0,0,GAME_WIDTH,GAME_HEIGHT);
 
 	gbuff.bind();
 
-	if (clear) {
-		glClearColor(CLEAR_COLOR);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	}
+	clearBuffer(clear);
 
 	geoMeshProg::use(transform);
 	geoMeshProg::renderScene(scene);
@@ -386,10 +386,7 @@ void drawGeometry(MeshGL &mgl, bool clear = true, const glm::mat4 &transform = g
 
 	gbuff.bind();
 
-	if (clear) {
-		glClearColor(CLEAR_COLOR);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	}
+	clearBuffer(clear);
 
 	geoMeshProg::use(transform);
 	geoMeshProg::renderMesh(mgl);
@@ -398,12 +395,11 @@ void drawGeometry(MeshGL &mgl, bool clear = true, const glm::mat4 &transform = g
 	gbuff.swap();
 }
 
-
 void drawGeometry(Mesh &mesh, bool clear = true, const glm::mat4 &transform = glm::mat4(1.0f)) {
 	MeshGL mgl;
 	createMeshGL(mesh, mgl);
 
-	drawGeometry(mgl, false, transform);
+	drawGeometry(mgl, clear, transform);
 	cleanupMesh(mgl);
 }
 
