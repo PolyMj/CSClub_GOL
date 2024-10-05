@@ -51,6 +51,10 @@ int steps_per_frame = STEP_PER_FRAME;
 int frames_per_second = TARGET_FPS;
 size_t disp_step = 0;
 
+Mesh brush_mesh;
+size_t brush_size = 5;
+glm::vec4 brush_color = glm::vec4(1.0f);
+
 inline void recompute_frametime() {
 	STEPTIME = 1'000'000 / (steps_per_frame*frames_per_second);
 	cout << "FPS = " << frames_per_second 
@@ -69,8 +73,7 @@ inline void fps(int inc) {
 }
 
 
-
-void createScreenQuad(glm::vec2 c1 = glm::vec2(1.0f), glm::vec2 c2 = glm::vec2(-1.0f)) {
+Mesh createQuad(glm::vec2 c1 = glm::vec2(1.0f), glm::vec2 c2 = glm::vec2(-1.0f)) {
 	c1 = maxAxes(c1, c2);
 	c2 = minAxes(c1, c2);
 
@@ -114,7 +117,7 @@ void createScreenQuad(glm::vec2 c1 = glm::vec2(1.0f), glm::vec2 c2 = glm::vec2(-
 
 	quad.indices = { 0, 1, 2, 1, 3, 2 };
 
-	createMeshGL(quad, SCREEN_QUAD);
+	return quad;
 }
 
 namespace displayProg {
@@ -215,6 +218,22 @@ namespace geoMeshProg {
 	}
 }
 
+
+void __brush();
+
+glm::vec2 mouse_pos = glm::vec2(0.0f);
+static void mouse_position_callback(GLFWwindow* window, double xpos, double ypos) {
+	int fwidth, fheight;
+	glfwGetFramebufferSize(window, &fwidth, &fheight);
+	
+	mouse_pos = glm::vec2(float(xpos) / float(fwidth), float(ypos) / float(fheight));
+	mouse_pos = (mouse_pos * 2.0f) - 1.0f;
+	
+	if (shift_pressed) {
+		__brush();
+	}
+}
+
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	// Update shift_pressed
 	if (key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT) {
@@ -244,6 +263,10 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		case GLFW_KEY_LEFT:
 			fps(-1);
 			break;
+		case GLFW_KEY_LEFT_SHIFT:
+		case GLFW_KEY_RIGHT_SHIFT:
+			__brush();
+			break;
 		}
 	}
 }
@@ -257,6 +280,7 @@ int initRenderer(FBO &fbo, float &aspect_ratio,
 
 	// Set callbacks
 	glfwSetKeyCallback(window, key_callback);
+	glfwSetCursorPosCallback(window, mouse_position_callback);
 
 	checkOpenGLVersion();
 
@@ -305,7 +329,12 @@ int initRenderer(FBO &fbo, float &aspect_ratio,
 	glUseProgram(0);
 
 
-	createScreenQuad();
+	// Create screen quad
+	Mesh m = createQuad();
+	createMeshGL(m, SCREEN_QUAD);
+
+	// Reuse for brush mesh
+	brush_mesh = m;
 
 	// Initialize frambuffer and create double buffer
 	if (fbo.is_init) {
@@ -333,13 +362,16 @@ int initRenderer(FBO &fbo, float &aspect_ratio,
 	return(0);
 }
 
-void drawGeometry(Scene &scene, const glm::mat4 &transform = glm::mat4(1.0f)) {
+void drawGeometry(Scene &scene, bool clear = true, const glm::mat4 &transform = glm::mat4(1.0f)) {
+	gbuff.swap();
 	glViewport(0,0,GAME_WIDTH,GAME_HEIGHT);
 
 	gbuff.bind();
 
-	glClearColor(CLEAR_COLOR);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	if (clear) {
+		glClearColor(CLEAR_COLOR);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	}
 
 	geoMeshProg::use(transform);
 	geoMeshProg::renderScene(scene);
@@ -348,19 +380,31 @@ void drawGeometry(Scene &scene, const glm::mat4 &transform = glm::mat4(1.0f)) {
 	gbuff.swap();
 }
 
-void drawGeometry(MeshGL &mgl, const glm::mat4 &transform = glm::mat4(1.0f)) {
+void drawGeometry(MeshGL &mgl, bool clear = true, const glm::mat4 &transform = glm::mat4(1.0f)) {
+	gbuff.swap();
 	glViewport(0,0,GAME_WIDTH,GAME_HEIGHT);
 
 	gbuff.bind();
 
-	glClearColor(CLEAR_COLOR);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	if (clear) {
+		glClearColor(CLEAR_COLOR);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	}
 
 	geoMeshProg::use(transform);
 	geoMeshProg::renderMesh(mgl);
 
 	gbuff.unbind();
 	gbuff.swap();
+}
+
+
+void drawGeometry(Mesh &mesh, bool clear = true, const glm::mat4 &transform = glm::mat4(1.0f)) {
+	MeshGL mgl;
+	createMeshGL(mesh, mgl);
+
+	drawGeometry(mgl, false, transform);
+	cleanupMesh(mgl);
 }
 
 
@@ -437,11 +481,23 @@ void drawingLoop() {
 }
 
 
+void __brush() {
+	float xoff = float(brush_size) / float(gbuff.width);
+	float yoff = float(brush_size) / float(gbuff.height);
+
+	// Rescale then translate a fullscreen quad to the desired brush size
+	glm::mat4 transform = buildTranslate(glm::vec4(mouse_pos.x, -mouse_pos.y, 0.0f, 1.0f))
+						* buildScale(glm::vec4(xoff,yoff,0.0f,1.0f));
+	print(transform);
+	drawGeometry(brush_mesh, false, transform);
+}
 
 
 void cleanupRenderer() {
-	glUseProgram(geoMeshProg::ID);
-	glUseProgram(displayProg::ID);
+	glDeleteProgram(geoMeshProg::ID);
+	glDeleteProgram(displayProg::ID);
+	glDeleteProgram(stepProg::ID);
 
+	cleanupMesh(SCREEN_QUAD);
 	cleanupGLFW(window);
 }

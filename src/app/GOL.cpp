@@ -26,7 +26,7 @@ int main() {
     glm::mat4 projMat = glm::perspective(glm::radians(FOV), aspect_ratio, NEAR_PLANE, FAR_PLANE);
     glm::mat4 viewProjMat = projMat * viewMat;
 
-    drawGeometry(scene, viewProjMat);
+    drawGeometry(scene, true, viewProjMat);
 
     drawingLoop();
 
