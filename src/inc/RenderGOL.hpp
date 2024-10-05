@@ -52,6 +52,9 @@ int frames_per_second = TARGET_FPS;
 size_t disp_step = 0;
 
 Mesh brush_mesh;
+MeshGL brush_meshGL;
+bool need_update_bmgl = true;
+
 size_t brush_size = 5;
 glm::vec4 brush_color = glm::vec4(1.0f);
 
@@ -172,7 +175,7 @@ namespace geoMeshProg {
 
 	void getLocations() {
 		modelMatLoc		= glGetUniformLocation(ID, "modelMat");
-		otherMatLoc		= glGetUniformLocation(ID, "viewProjMat");
+		otherMatLoc		= glGetUniformLocation(ID, "otherTransform");
 		if (DEBUG_MODE) {
 			cout << "\tGEOMETRY MESH PROGRAM: " << endl;
 			cout << "modelMatLoc: "		<< modelMatLoc << endl;
@@ -221,13 +224,23 @@ namespace geoMeshProg {
 
 void __brush();
 
+void __brush_color(glm::vec4 color) {
+	for (Vertex &v : brush_mesh.vertices) {
+		v.color = color;
+	}
+}
+
+glm::vec2 last_mouse_pos = glm::vec2(0.0f);
 glm::vec2 mouse_pos = glm::vec2(0.0f);
 static void mouse_position_callback(GLFWwindow* window, double xpos, double ypos) {
+	last_mouse_pos = mouse_pos;
+	
 	int fwidth, fheight;
 	glfwGetFramebufferSize(window, &fwidth, &fheight);
 	
 	mouse_pos = glm::vec2(float(xpos) / float(fwidth), float(ypos) / float(fheight));
 	mouse_pos = (mouse_pos * 2.0f) - 1.0f;
+	mouse_pos.y = -mouse_pos.y;
 	
 	if (shift_pressed) {
 		__brush();
@@ -267,6 +280,8 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		case GLFW_KEY_RIGHT_SHIFT:
 			__brush();
 			break;
+		case GLFW_KEY_R:
+			__brush_color(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
 		}
 	}
 }
@@ -290,13 +305,9 @@ int initRenderer(FBO &fbo, float &aspect_ratio,
 
 	// Create a load shaders
 	try {
-		// stepProg::ID	= loadAndCreateShaderProgram(VERT_SHADER, stepFS_filepath);
-		// displayProg::ID	= loadAndCreateShaderProgram(VERT_SHADER, displayFS_filepath);
-		// geoMeshProg::ID	= loadAndCreateShaderProgram(GEO_SHAD_VS, GEO_SHAD_FS);
-		#define SHADER_DIR std::string("./src/shaders/BasicGOL/")
-		geoMeshProg::ID = loadAndCreateShaderProgram(SHADER_DIR + "GeoMesh.vs",	SHADER_DIR + "GeoMesh.fs");
-		displayProg::ID = loadAndCreateShaderProgram(SHADER_DIR + "Display.vs",	SHADER_DIR + "Display.fs");
-		stepProg::ID	= loadAndCreateShaderProgram(SHADER_DIR + "Step.vs",	SHADER_DIR + "Step.fs");
+		stepProg::ID	= loadAndCreateShaderProgram(VERT_SHADER, stepFS_filepath);
+		displayProg::ID	= loadAndCreateShaderProgram(VERT_SHADER, displayFS_filepath);
+		geoMeshProg::ID	= loadAndCreateShaderProgram(geoVS_filepath, geoFS_filepath);
 	}
 	catch (exception e) {
 		// Close program
@@ -334,6 +345,7 @@ int initRenderer(FBO &fbo, float &aspect_ratio,
 
 	// Reuse for brush mesh
 	brush_mesh = m;
+	createMeshGL(brush_mesh, brush_meshGL);
 
 	// Initialize frambuffer and create double buffer
 	if (fbo.is_init) {
@@ -481,11 +493,31 @@ void __brush() {
 	float xoff = float(brush_size) / float(gbuff.width);
 	float yoff = float(brush_size) / float(gbuff.height);
 
-	// Rescale then translate a fullscreen quad to the desired brush size
-	glm::mat4 transform = buildTranslate(glm::vec4(mouse_pos.x, -mouse_pos.y, 0.0f, 1.0f))
-						* buildScale(glm::vec4(xoff,yoff,0.0f,1.0f));
+	glm::vec2 travel = mouse_pos - last_mouse_pos;
+	glm::vec2 dir = glm::normalize(travel);
+	glm::vec2 mid = last_mouse_pos + 0.5f*travel;
+	float bredth = glm::length(travel) * 0.5f;
+
+	// Scale to brush size, bredth + bsize
+	glm::mat2 scale = buildScale(glm::vec2(xoff+bredth, yoff));
+
+	// Rotate to align with travel direction
+	glm::mat2 rot = glm::mat2(
+		dir.x, dir.y, 
+		-dir.y, dir.x
+	);
+
+
+	glm::mat4 transform = increaseMatrixSize<2>(rot*scale);
+	transform[3][0] = mid.x;
+	transform[3][1] = mid.y;
+
+	if (need_update_bmgl) {
+		updateMeshGL(brush_mesh, brush_meshGL);
+	}
+
 	print(transform);
-	drawGeometry(brush_mesh, false, transform);
+	drawGeometry(brush_meshGL, false, transform);
 }
 
 

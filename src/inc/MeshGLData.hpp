@@ -19,5 +19,6 @@ struct MeshGL {
 };
 
 void createMeshGL(Mesh &m, MeshGL &mgl);
+void updateMeshGL(Mesh &m, MeshGL &mgl);
 void drawMesh(MeshGL &mgl);
 void cleanupMesh(MeshGL &mgl);

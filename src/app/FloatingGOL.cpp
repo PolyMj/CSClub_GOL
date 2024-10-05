@@ -203,7 +203,7 @@ namespace geoMeshProg {
 
 	void getLocations() {
 		modelMatLoc		= glGetUniformLocation(ID, "modelMat");
-		viewProjMatLoc	= glGetUniformLocation(ID, "viewProjMat");
+		viewProjMatLoc	= glGetUniformLocation(ID, "otherTransform");
 		normalMatLoc	= glGetUniformLocation(ID, "normalMat");
 		if (DEBUG_MODE) {
 			cout << "\tGEOMETRY MESH PROGRAM: " << endl;

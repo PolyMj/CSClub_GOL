@@ -4,9 +4,9 @@
 layout(location=0) in vec3 position;
 
 uniform mat4 modelMat;
-uniform mat4 otherTransforms;
+uniform mat4 otherTransform;
 
 void main() {
-    gl_Position = otherTransforms*modelMat*vec4(position, 1.0);
+    gl_Position = otherTransform*modelMat*vec4(position, 1.0);
 }
 

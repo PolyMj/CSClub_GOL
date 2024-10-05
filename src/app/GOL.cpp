@@ -3,8 +3,10 @@
 #include "Scene.hpp"
 using namespace std;
 
-#define STEP_FS "./src/shaders/BasicGOL/Step.fs"
-#define DISP_FS "./src/shaders/BasicGOL/Display.fs"
+#define STEP_FS "./src/shaders/FloatingGOL/Step.fs"
+#define DISP_FS "./src/shaders/FloatingGOL/Display.fs"
+#define GEO_VS  "./src/shaders/FloatingGOL/GeoMesh.vs"
+#define GEO_FS  "./src/shaders/FloatingGOL/GeoMesh.fs"
 
 #define CAMERA_POS      0.0f, 0.0f, 1.0f
 #define CAMERA_LOOKAT   0.0f, 0.0f, 0.0f
@@ -15,10 +17,10 @@ using namespace std;
 
 int main() {
     FBO fbo;
-    fbo.pushByteAttachment("lifeBool");
+	fbo.pushFloatAttachment("life");
 
     float aspect_ratio;
-    initRenderer(fbo, aspect_ratio, STEP_FS, DISP_FS);
+    initRenderer(fbo, aspect_ratio, STEP_FS, DISP_FS, GEO_VS, GEO_FS);
 
     
     Scene scene = importSceneFromFile("./assets/models/bunnyteatime.glb");

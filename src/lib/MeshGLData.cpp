@@ -56,6 +56,25 @@ void createMeshGL(Mesh &m, MeshGL &mgl) {
 	glBindVertexArray(0);
 }
 
+void updateMeshGL(Mesh &m, MeshGL &mgl) {
+	// Update VBO
+	glBindBuffer(GL_ARRAY_BUFFER, mgl.VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex)*m.vertices.size(), m.vertices.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// Update EBO
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mgl.EBO);
+	glBufferData(
+		GL_ELEMENT_ARRAY_BUFFER,
+		m.indices.size() * sizeof(GLuint),
+		m.indices.data(),
+		GL_STATIC_DRAW
+	);
+
+	// Set index count
+	mgl.indexCnt = (int)m.indices.size();
+}
+
 // Draw OpenGL mesh
 void drawMesh(MeshGL &mgl) {
 	glBindVertexArray(mgl.VAO);
