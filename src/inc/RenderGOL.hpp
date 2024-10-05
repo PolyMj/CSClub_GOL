@@ -55,7 +55,7 @@ Mesh brush_mesh;
 MeshGL brush_meshGL;
 bool need_update_bmgl = true;
 
-size_t brush_size = 5;
+int brush_size = 5;
 glm::vec4 brush_color = glm::vec4(1.0f);
 
 inline void recompute_frametime() {
@@ -92,28 +92,28 @@ Mesh createQuad(glm::vec2 c1 = glm::vec2(1.0f), glm::vec2 c2 = glm::vec2(-1.0f))
 
 	Vertex v0;
 	v0.position = glm::vec3(c2.x, c2.y, 0.0f);
-	v0.color = glm::vec4(0,1,0,1);
+	v0.color = glm::vec4(1.0f);
 	v0.normal = glm::normalize(glm::vec3(-1,-1,1));
 	v0.texcoord = glm::vec2(0,0);
 	quad.vertices.push_back(v0);
 
 	Vertex v1;
 	v1.position = glm::vec3(c1.x, c2.y, 0.0f);
-	v1.color = glm::vec4(0.5,0.5,0,1);
+	v1.color = glm::vec4(1.0f);
 	v1.normal = glm::normalize(glm::vec3(1,-1,1));
 	v1.texcoord = glm::vec2(1,0);
 	quad.vertices.push_back(v1);
 
 	Vertex v2;
 	v2.position = glm::vec3(c2.x, c1.y, 0.0f);
-	v2.color = glm::vec4(0,1,1,1);
+	v2.color = glm::vec4(1.0f);
 	v2.normal = glm::normalize(glm::vec3(-1,1,1));
 	v2.texcoord = glm::vec2(0,1);
 	quad.vertices.push_back(v2);
 
 	Vertex v3;
 	v3.position = glm::vec3(c1.x, c1.y, 0.0f);
-	v3.color = glm::vec4(0,0,1,1);
+	v3.color = glm::vec4(1.0f);
 	v3.normal = glm::normalize(glm::vec3(1,1,1));
 	v3.texcoord = glm::vec2(1,1);
 	quad.vertices.push_back(v3);
@@ -237,6 +237,10 @@ void __brush_inc_color(glm::vec4 color) {
 	__brush_set_color(color);
 }
 
+inline void __brush_change_size(int diff) {
+	brush_size = max(1, min(min(gbuff.width, gbuff.height), brush_size+diff));
+}
+
 glm::vec2 last_mouse_pos = glm::vec2(0.0f);
 glm::vec2 mouse_pos = glm::vec2(0.0f);
 static void mouse_position_callback(GLFWwindow* window, double xpos, double ypos) {
@@ -304,6 +308,12 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 			break;
 		case GLFW_KEY_SEMICOLON:
 			__brush_inc_color(glm::vec4(0.0f, 0.0f,-0.1f, 0.0f));
+			break;
+		case GLFW_KEY_U:
+			__brush_change_size(1);
+			break;
+		case GLFW_KEY_J:
+			__brush_change_size(-1);
 			break;
 		}
 	}
@@ -540,7 +550,6 @@ void __brush() {
 		updateMeshGL(brush_mesh, brush_meshGL);
 	}
 
-	print(transform);
 	drawGeometry(brush_meshGL, false, transform);
 }
 
