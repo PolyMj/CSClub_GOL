@@ -22,13 +22,13 @@ int main() {
     float aspect_ratio;
     initRenderer(fbo, aspect_ratio, STEP_FS, DISP_FS, GEO_VS, GEO_FS);
 
-    
+    /// DRAW INITIAL CONDITIONS /// Not required, can use brush instead ///
     Scene scene = importSceneFromFile("./assets/models/bunnyteatime.glb");
     glm::mat4 viewMat = glm::lookAt(glm::vec3(CAMERA_POS), glm::vec3(CAMERA_LOOKAT), glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 projMat = glm::perspective(glm::radians(FOV), aspect_ratio, NEAR_PLANE, FAR_PLANE);
     glm::mat4 viewProjMat = projMat * viewMat;
-
     drawGeometry(scene, true, viewProjMat);
+    /// END DRAW INITIAL ///
 
     drawingLoop();
 

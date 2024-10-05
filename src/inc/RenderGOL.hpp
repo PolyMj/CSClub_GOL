@@ -239,22 +239,38 @@ void __brush_inc_color(glm::vec4 color) {
 
 inline void __brush_change_size(int diff) {
 	brush_size = max(1, min(min(gbuff.width, gbuff.height), brush_size+diff));
+	cout << "Brush size = " << brush_size << endl;
 }
+
+inline void __clear();
 
 glm::vec2 last_mouse_pos = glm::vec2(0.0f);
 glm::vec2 mouse_pos = glm::vec2(0.0f);
 static void mouse_position_callback(GLFWwindow* window, double xpos, double ypos) {
+	// Set last mouse pos
 	last_mouse_pos = mouse_pos;
 	
+	// Get window size
 	int fwidth, fheight;
 	glfwGetFramebufferSize(window, &fwidth, &fheight);
 	
+	// Get new mouse pos
 	mouse_pos = glm::vec2(float(xpos) / float(fwidth), float(ypos) / float(fheight));
 	mouse_pos = (mouse_pos * 2.0f) - 1.0f;
 	mouse_pos.y = -mouse_pos.y;
 	
-	if (shift_pressed) {
+	if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 		__brush();
+}
+
+static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+	if (action == GLFW_PRESS) {
+		switch(button) {
+			case GLFW_MOUSE_BUTTON_LEFT:
+				last_mouse_pos = mouse_pos; // Mouse isn't moving so just use the current pos
+				__brush();
+				break;
+		}
 	}
 }
 
@@ -287,10 +303,6 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		case GLFW_KEY_LEFT:
 			fps(-1);
 			break;
-		case GLFW_KEY_LEFT_SHIFT:
-		case GLFW_KEY_RIGHT_SHIFT:
-			__brush();
-			break;
 		case GLFW_KEY_I:
 			__brush_inc_color(glm::vec4(0.1f, 0.0f, 0.0f, 0.0f));
 			break;
@@ -315,6 +327,9 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		case GLFW_KEY_J:
 			__brush_change_size(-1);
 			break;
+		case GLFW_KEY_ENTER:
+			__clear();
+			break;
 		}
 	}
 }
@@ -329,6 +344,7 @@ int initRenderer(FBO &fbo, float &aspect_ratio,
 	// Set callbacks
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetCursorPosCallback(window, mouse_position_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
 
 	checkOpenGLVersion();
 
@@ -526,22 +542,36 @@ void __brush() {
 	float xoff = float(brush_size) / float(gbuff.width);
 	float yoff = float(brush_size) / float(gbuff.height);
 
-	glm::vec2 travel = mouse_pos - last_mouse_pos;
-	glm::vec2 dir = glm::normalize(travel);
-	glm::vec2 mid = last_mouse_pos + 0.5f*travel;
-	float bredth = glm::length(travel) * 0.5f;
+	glm::vec2 travel, dir, mid;
+	float length;
 
-	// Scale to brush size, bredth + bsize
-	glm::mat2 scale = buildScale(glm::vec2(xoff+bredth, yoff));
+	travel = mouse_pos - last_mouse_pos;
+	length = glm::length(travel);
 
-	// Rotate to align with travel direction
+	// If the travel distance of the mouse is negligable, just draw a dot
+	if (abs(length) < 0.00001f) {
+		length = 0.0f;
+		dir = glm::vec2(1.0f, 0.0f);
+		mid = mouse_pos;
+	}
+	// Otherwise, we'll rescale to a rectangle that covers the travel distance
+	else {
+		dir = travel / length;
+		mid = last_mouse_pos + 0.5f*travel;
+	}
+
+	// Scale brush & travel size
+	glm::mat2 scale = buildScale(glm::vec2(xoff+length*0.5f, yoff));
+
+	// Rotate to travel direction
 	glm::mat2 rot = glm::mat2(
 		dir.x, dir.y, 
 		-dir.y, dir.x
 	);
 
-
+	// Full-size rotation and scalaing matrix
 	glm::mat4 transform = increaseMatrixSize<2>(rot*scale);
+	// Add translation portion
 	transform[3][0] = mid.x;
 	transform[3][1] = mid.y;
 
@@ -551,6 +581,19 @@ void __brush() {
 	}
 
 	drawGeometry(brush_meshGL, false, transform);
+}
+
+
+inline void __clear() {
+	gbuff.bind();
+	clearBuffer(true);
+	gbuff.unbind();
+	gbuff.swap();
+
+	gbuff.bind();
+	clearBuffer(true);
+	gbuff.unbind();
+	gbuff.swap();
 }
 
 
