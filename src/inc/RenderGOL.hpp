@@ -224,10 +224,17 @@ namespace geoMeshProg {
 
 void __brush();
 
-void __brush_color(glm::vec4 color) {
+void __brush_set_color(glm::vec4 color) {
+	boundBetween(color, 0.0f, 1.0f);
 	for (Vertex &v : brush_mesh.vertices) {
 		v.color = color;
 	}
+	need_update_bmgl = true;
+}
+
+void __brush_inc_color(glm::vec4 color) {
+	color = brush_mesh.vertices[0].color + color;
+	__brush_set_color(color);
 }
 
 glm::vec2 last_mouse_pos = glm::vec2(0.0f);
@@ -280,8 +287,24 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		case GLFW_KEY_RIGHT_SHIFT:
 			__brush();
 			break;
-		case GLFW_KEY_R:
-			__brush_color(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+		case GLFW_KEY_I:
+			__brush_inc_color(glm::vec4(0.1f, 0.0f, 0.0f, 0.0f));
+			break;
+		case GLFW_KEY_K:
+			__brush_inc_color(glm::vec4(-0.1f,0.0f, 0.0f, 0.0f));
+			break;
+		case GLFW_KEY_O:
+			__brush_inc_color(glm::vec4(0.0f, 0.1f, 0.0f, 0.0f));
+			break;
+		case GLFW_KEY_L:
+			__brush_inc_color(glm::vec4(0.0f,-0.1f, 0.0f, 0.0f));
+			break;
+		case GLFW_KEY_P:
+			__brush_inc_color(glm::vec4(0.0f, 0.0f, 0.1f, 0.0f));
+			break;
+		case GLFW_KEY_SEMICOLON:
+			__brush_inc_color(glm::vec4(0.0f, 0.0f,-0.1f, 0.0f));
+			break;
 		}
 	}
 }
@@ -513,6 +536,7 @@ void __brush() {
 	transform[3][1] = mid.y;
 
 	if (need_update_bmgl) {
+		need_update_bmgl = false;
 		updateMeshGL(brush_mesh, brush_meshGL);
 	}
 

@@ -3,6 +3,8 @@
 
 layout(location=0) out float lifeOut;
 
+in vec3 outColor;
+
 void main() {
-    lifeOut = 1.0;
+    lifeOut = (outColor.r + outColor.g + outColor.b) / 3.0;
 }
