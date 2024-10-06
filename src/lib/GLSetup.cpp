@@ -99,7 +99,7 @@ void APIENTRY openGLDebugCallback(	GLenum source,
 									const char *message, 
 									const void *userParam) {
     // ignore non-significant error/warning codes
-    if(id == 131169 || id == 131185 || id == 131218 || id == 131204) return; 
+    if(id == 131169 || id == 131185 || id == 131218 || id == 131204 || id == 131220) return; 
 
     cout << "---------------" << endl;
     cout << "Debug message (" << id << "): " <<  message << endl;

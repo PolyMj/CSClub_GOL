@@ -4,5 +4,5 @@
 layout(location=0) out uint lifeBoolOut;
 
 void main() {
-    lifeBoolOut = 1;
+    lifeBoolOut = uint(1);
 }
