@@ -27,6 +27,44 @@ glm::vec4 brush_color = glm::vec4(1.0f);
 glm::vec2 last_mouse_pos = glm::vec2(0.0f);
 glm::vec2 mouse_pos = glm::vec2(0.0f);
 
+
+
+
+void Uniform::pass() {
+	stepFunc();
+
+	switch (type) {
+		case Float:
+			glUniform1f(loc, *static_cast<float*>(data));
+			break;
+		case Vec2f:
+			glUniform2fv(loc, 1, glm::value_ptr(*static_cast<glm::vec2*>(data)));
+			break;
+		case Vec3f:
+			glUniform3fv(loc, 1, glm::value_ptr(*static_cast<glm::vec3*>(data)));
+			break;
+		case Vec4f:
+			glUniform4fv(loc, 1, glm::value_ptr(*static_cast<glm::vec4*>(data)));
+			break;
+		case Int:
+			glUniform1i(loc, *static_cast<int*>(data));
+			break;
+		case UInt:
+			glUniform1ui(loc, *static_cast<unsigned int*>(data));
+			break;
+		case Mat2f:
+			glUniformMatrix2fv(loc, 1, false, glm::value_ptr(*static_cast<glm::mat2*>(data)));
+			break;
+		case Mat3f:
+			glUniformMatrix3fv(loc, 1, false, glm::value_ptr(*static_cast<glm::mat3*>(data)));
+			break;
+		case Mat4f:
+			glUniformMatrix4fv(loc, 1, false, glm::value_ptr(*static_cast<glm::mat4*>(data)));
+			break;
+	}
+}
+
+
 namespace displayProg {
     GLuint ID;
     vector<GLuint> gbLocs;
@@ -38,6 +76,8 @@ namespace stepProg {
 
 	GLuint xIncLoc;
 	GLuint yIncLoc;
+
+	vector<Uniform> customUniforms;
 }
 
 namespace geoMeshProg {

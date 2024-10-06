@@ -13,9 +13,19 @@ using namespace std;
 #define FAR_PLANE       100.0f
 
 
+glm::vec2 locData = glm::vec2(-1.0f);
+void locStep() {
+    locData = locData + glm::vec2(0.002f, 0.0037f);
+    print(locData);
+}
+
+
 int main() {
     FBO fbo;
 	fbo.pushByteAttachment("life");
+
+    Uniform locUni = Uniform(Uniform::Vec2f, "POI", (void*)(&locData), locStep);
+    stepProg::addCustomUniform(locUni);
 
     float aspect_ratio;
     initRenderer(fbo, aspect_ratio, STEP_FS, DISP_FS, GEO_VS, GEO_FS);

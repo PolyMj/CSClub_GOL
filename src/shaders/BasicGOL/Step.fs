@@ -9,6 +9,8 @@ uniform usampler2D lifeBool;
 uniform float inc_x;
 uniform float inc_y;
 
+uniform vec2 POI;
+
 #define RAD         1
 
 // get pixel relative to pixel of interest
@@ -24,6 +26,15 @@ uint getPiP(int i, int j) {
 
 
 void main() {
+    vec2 dist = abs(fract(POI) - interUV);
+    dist = min(dist, 1.0-dist);
+
+    if (length(dist) < 0.1) {
+        lifeBoolOut = uint(1);
+        return;
+    }
+
+
         /// GET PIXEL OF INTEREST ///
     bool is_alive = uint(texture(lifeBool, interUV)) > 0;
 

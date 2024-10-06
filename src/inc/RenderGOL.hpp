@@ -66,6 +66,33 @@ extern glm::vec2 mouse_pos;
 	/// END GLOBALS ///
 
 
+struct Uniform {
+	enum Type {
+		Float, Vec2f, Vec3f, Vec4f,
+		Int, UInt,
+		Mat2f, Mat3f, Mat4f
+	};
+
+	Type type;
+	GLuint loc;
+	string name;
+	void *data;
+
+	void(*stepFunc)();
+
+	inline Uniform(Type type, string name, void *data, void(*stepFunc)() = NULL)
+		 :	type(type),  name(name), data(data), stepFunc(stepFunc) {};
+
+	inline void getLoc(const GLuint &progID) {
+		loc = glGetUniformLocation(progID, name.c_str());
+		if (DEBUG_MODE)
+			cout << name << "Loc = " << loc << endl;
+	}
+
+	void pass();
+};
+
+
 inline void __recompute_frametime();
 
 inline void __spf(int inc);
@@ -79,9 +106,8 @@ namespace displayProg {
 	extern GLuint ID;
 	extern vector<GLuint> gbLocs;
 
-	inline void getLocations() {
-
-	}
+	// Just a placeholder
+	inline void getLocations() { }
 
 	inline void use() {
 		glUseProgram(ID);
@@ -99,6 +125,12 @@ namespace stepProg {
 	extern GLuint xIncLoc;
 	extern GLuint yIncLoc;
 
+	extern vector<Uniform> customUniforms;
+
+	inline void addCustomUniform(const Uniform &uni) {
+		customUniforms.push_back(uni);
+	}
+
 	inline void getLocations() {
 		xIncLoc	= glGetUniformLocation(ID, "inc_x");
 		yIncLoc	= glGetUniformLocation(ID, "inc_y");
@@ -106,12 +138,20 @@ namespace stepProg {
 			cout << "inc_x: " << xIncLoc << endl;
 			cout << "inc_y: " << yIncLoc << endl;
 		}
+
+		for (Uniform &uni : customUniforms) {
+			uni.getLoc(ID);
+		}
 	}
 
 	inline void use(int width, int height) {
 		glUseProgram(ID);
 		glUniform1f(xIncLoc, 1.0f / float(width));
 		glUniform1f(yIncLoc, 1.0f / float(height));
+
+		for (Uniform &uni : customUniforms) {
+			uni.pass();
+		}
 	}
 
 	inline void draw() {
