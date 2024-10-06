@@ -5,6 +5,10 @@
 // GLFW error callback
 static void error_callback(int error, const char* description) {
 	cerr << "ERROR IN GLSetup.cpp" << error << ": " << description << endl;
+	if (error == 65537) {
+		cout << "Check that the filepaths of your shaders are listed corretly. For some reason this error can be caused by shaders not being found" << endl;
+		cout << "also drink water" << endl;
+	}
 }
 
 // GLFW setup
@@ -16,6 +20,9 @@ GLFWwindow* setupGLFW(string windowTitle, int windowWidth, int windowHeight, boo
 	// (Try to) initialize GLFW
 	if (!glfwInit()) {
 		exit(EXIT_FAILURE);
+	}
+	else {
+		cout << "GLFW Initialized sucessfully" << endl;
 	}
 
 	// Force specific OpenGL version (GLFW_[MAJOR/MINOR] defined in SETTINGS.hpp)

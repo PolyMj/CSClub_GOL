@@ -51,3 +51,8 @@ set(ALL_LIBRARIES ${Vulkan_LIBRARIES} ${ASSIMP_LIBRARIES} ${ASSIMP_ZLIB} glfw GL
 add_executable(GOL ${GENERAL_SOURCES} "./src/app/GOL.cpp")
 target_link_libraries(GOL ${ALL_LIBRARIES})
 install(TARGETS GOL RUNTIME DESTINATION bin/GOL)
+
+# ExampleGOL
+add_executable(ExampleGOL ${GENERAL_SOURCES} "./src/app/ExampleGOL.cpp")
+target_link_libraries(ExampleGOL ${ALL_LIBRARIES})
+install(TARGETS ExampleGOL RUNTIME DESTINATION bin/ExampleGOL)
