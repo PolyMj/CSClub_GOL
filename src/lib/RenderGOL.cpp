@@ -129,12 +129,12 @@ inline void __recompute_steptime() {
 
 inline void __spf(int inc) {
 	steps_per_frame = std::max(steps_per_frame+inc, MIN_SPF);
-	__recompute_frametime();
+	__recompute_steptime();
 }
 
 inline void __fps(int inc) {
 	frames_per_second = std::max(frames_per_second+inc, MIN_FPS);
-	__recompute_steptime();
+	__recompute_frametime();
 }
 
 
