@@ -3,8 +3,8 @@
 #define FPS             30
 
 // New FPS/Step settings
-#define TARGET_FPS      60
-#define STEP_PER_FRAME  1
+#define TARGET_FPS      170
+#define STEP_PER_FRAME  4
 
 #define DEBUG_MODE		true
 #define GLFW_MAJOR		4

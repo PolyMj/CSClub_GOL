@@ -115,13 +115,15 @@ inline void __recompute_frametime() {
 	STEPTIME = 1'000'000 / (steps_per_frame*frames_per_second);
 	cout << "FPS = " << frames_per_second 
 		<< " | Steps per Frame = " << steps_per_frame 
-		<< " | Steptime (ns) = " << STEPTIME << endl;
+		<< " | Target Frametime (ns) = " << FRAMETIME
+		<< " | Target Steptime (ns) = " << STEPTIME << endl;
 }
 
 inline void __recompute_steptime() {
 	STEPTIME = 1'000'000 / (steps_per_frame*frames_per_second);
 	cout << "FPS = " << frames_per_second 
 		<< " | Steps per Frame = " << steps_per_frame 
+		<< " | Target Frametime (ns) = " << FRAMETIME
 		<< " | Steptime (ns) = " << STEPTIME << endl;
 }
 

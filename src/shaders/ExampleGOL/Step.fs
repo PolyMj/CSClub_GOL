@@ -9,14 +9,12 @@ uniform usampler2D lifeBool;
 uniform float inc_x;
 uniform float inc_y;
 
-uniform vec2 randPoint;
+uniform vec2 epicenter;
 
 #define RAD         1
+#define EPIC_MIN    0.02
+#define EPIC_MAX    0.55
 
-// get pixel relative to pixel of interest
-uint getP(int i, int j) {
-    return uint(texture(lifeBool, interUV + vec2(i*inc_x, j*inc_y)));
-}
 
 // Gets a pixel and its symmetric pixel (negative of relative position)
 uint getPiP(int i, int j) {
@@ -26,25 +24,25 @@ uint getPiP(int i, int j) {
 
 
 void main() {
-    vec2 dist = abs(fract(randPoint) - interUV);
-    dist = min(dist, 1.0-dist);
 
-    if (length(dist) < 0.04) {
+        /// CHECK RELATION TO EPICENTER ///
+    vec2 travel = abs(fract(epicenter) - interUV);
+    float dist = length(min(travel, 1.0-travel));
+
+    if (dist < EPIC_MIN) {
         lifeBoolOut = 1;
         return;
     }
-    else if (length(dist) > 0.5) {
+    else if (dist > EPIC_MAX) {
         lifeBoolOut = 0;
         return;
     }
-
-        /// GET PIXEL OF INTEREST ///
-    bool is_alive = uint(texture(lifeBool, interUV)) > 0;
+        /// END EPICENTER ///
 
 
-        /// GET SUM OF NEARBY VALUES
+        /// GET SUM OF NEIGHBORHOOD ///
     uint near_life = 0;
-    // For perimeter around pixel, grab an L-shape of pixels, and the negative positon of the L shape, forming a square
+    // For perimeter around pixel with ~radius "r", grab an L-shape of pixels, and the negative positon of the L shape, forming a square
     for (int r = 1; r <= RAD; ++r) {
         // Get pixels along x/y axis
         near_life += getPiP(r,0);
@@ -68,6 +66,9 @@ void main() {
 
 
         /// CELL LOGIC ///
+
+    // Get pixel of interest
+    bool is_alive = uint(texture(lifeBool, interUV)) > 0;
 
     if (is_alive) {
         if (near_life < 2) {
