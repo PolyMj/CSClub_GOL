@@ -9,6 +9,7 @@ GDBuffer gbuff;
 GLFWwindow *window;
 
 size_t STEPTIME = 1'000'000 / (STEP_PER_FRAME*TARGET_FPS);
+size_t FRAMETIME = 1'000'000 / (TARGET_FPS);
 bool is_stepping = false;
 
 bool shift_pressed = false;
@@ -110,6 +111,14 @@ namespace geoMeshProg {
 
 
 inline void __recompute_frametime() {
+	FRAMETIME = 1'000'000 / (frames_per_second);
+	STEPTIME = 1'000'000 / (steps_per_frame*frames_per_second);
+	cout << "FPS = " << frames_per_second 
+		<< " | Steps per Frame = " << steps_per_frame 
+		<< " | Steptime (ns) = " << STEPTIME << endl;
+}
+
+inline void __recompute_steptime() {
 	STEPTIME = 1'000'000 / (steps_per_frame*frames_per_second);
 	cout << "FPS = " << frames_per_second 
 		<< " | Steps per Frame = " << steps_per_frame 
@@ -123,7 +132,7 @@ inline void __spf(int inc) {
 
 inline void __fps(int inc) {
 	frames_per_second = std::max(frames_per_second+inc, MIN_FPS);
-	__recompute_frametime();
+	__recompute_steptime();
 }
 
 
@@ -414,7 +423,8 @@ void drawGeometry(Mesh &mesh, bool clear, const glm::mat4 &transform) {
 void drawingLoop() {
 	while(!glfwWindowShouldClose(window)) {
 			/// STEP ///
-		if (is_stepping) {
+		if (is_stepping) 
+		for (int i = 0; i < steps_per_frame; ++i) {
 			// Setup program stuff
 			glUseProgram(stepProg::ID);
 			glViewport(0, 0, gbuff.width, gbuff.height);
@@ -441,44 +451,42 @@ void drawingLoop() {
 
 			/// DISPLAY ///
 
-		if (++disp_step >= steps_per_frame) {
-			disp_step = 0;
+		disp_step = 0;
 
-			// Set viewport size
-			int fwidth, fheight;
-			glfwGetFramebufferSize(window, &fwidth, &fheight);
+		// Set viewport size
+		int fwidth, fheight;
+		glfwGetFramebufferSize(window, &fwidth, &fheight);
 
-			
-			glUseProgram(displayProg::ID); // Use display program
-			glViewport(0, 0, fwidth, fheight); // Set viewport
+		
+		glUseProgram(displayProg::ID); // Use display program
+		glViewport(0, 0, fwidth, fheight); // Set viewport
 
-			gbuff.use(displayProg::gbLocs); // Read from gbuff
+		gbuff.use(displayProg::gbLocs); // Read from gbuff
 
 
-			// Clear framebuffer
-			glClearColor(CLEAR_COLOR);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		// Clear framebuffer
+		glClearColor(CLEAR_COLOR);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-			// Display game status
-			displayProg::use();
-			displayProg::draw();
+		// Display game status
+		displayProg::use();
+		displayProg::draw();
 
-			gbuff.unuse(displayProg::gbLocs); // Stop reading gbuff
-			glUseProgram(0);
+		gbuff.unuse(displayProg::gbLocs); // Stop reading gbuff
+		glUseProgram(0);
 
-			// Swap framebuffers and poll for window events
-			glfwSwapBuffers(window);
-		}
+		// Swap framebuffers and poll for window events
+		glfwSwapBuffers(window);
 
 		glfwPollEvents();
 		
 		// Sleep for a bit
-		if (STEPTIME < 1'000) {
-			this_thread::sleep_for(chrono::nanoseconds(STEPTIME));
+		if (FRAMETIME < 1'000) {
+			this_thread::sleep_for(chrono::nanoseconds(FRAMETIME));
 		}
 		else {
-			// this_thread::sleep_for(chrono::nanoseconds(STEPTIME % 1'000));
-			this_thread::sleep_for(chrono::milliseconds(STEPTIME / 1'000));
+			// this_thread::sleep_for(chrono::nanoseconds(FRAMETIME % 1'000));
+			this_thread::sleep_for(chrono::milliseconds(FRAMETIME / 1'000));
 		}
 	}
 }

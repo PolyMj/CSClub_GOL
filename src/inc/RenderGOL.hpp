@@ -45,6 +45,7 @@ extern GDBuffer gbuff;
 extern GLFWwindow *window;
 
 extern size_t STEPTIME;
+extern size_t FRAMETIME;
 extern bool is_stepping;
 
 extern bool shift_pressed;
