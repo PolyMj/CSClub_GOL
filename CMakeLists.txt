@@ -13,7 +13,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find Libraries
-find_package(Vulkan REQUIRED) # If you have GLM installed properly: find_package(GLM REQUIRED)
+find_package(glm REQUIRED) # If you have GLM installed properly: find_package(GLM REQUIRED)
 find_package(assimp REQUIRED)
 find_package(glfw3 3.3 REQUIRED)
 find_package(GLEW REQUIRED)
@@ -35,17 +35,7 @@ file(GLOB GENERAL_SOURCES
 ################################
 ### CREATE / ADD EXECUTABLES ###
 
-set(ALL_LIBRARIES ${Vulkan_LIBRARIES} ${ASSIMP_LIBRARIES} ${ASSIMP_ZLIB} glfw GLEW::glew_s)
-
-# # BasicGOL
-# add_executable(BasicGOL ${GENERAL_SOURCES} "./src/app/BasicGOL.cpp")
-# target_link_libraries(BasicGOL ${ALL_LIBRARIES})
-# install(TARGETS BasicGOL RUNTIME DESTINATION bin/BasicGOL)
-
-# # FloatingGOL
-# add_executable(FloatingGOL ${GENERAL_SOURCES} "./src/app/FloatingGOL.cpp")
-# target_link_libraries(FloatingGOL ${ALL_LIBRARIES})
-# install(TARGETS FloatingGOL RUNTIME DESTINATION bin/FloatingGOL)
+set(ALL_LIBRARIES ${Vulkan_LIBRARIES} ${ASSIMP_LIBRARIES} ${ASSIMP_ZLIB} glfw GLEW::glew_s glm::glm)
 
 # GOL
 add_executable(GOL ${GENERAL_SOURCES} "./src/app/GOL.cpp")

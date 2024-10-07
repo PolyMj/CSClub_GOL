@@ -67,6 +67,12 @@ Download [Souce Code](https://github.com/assimp/assimp/releases)
 * CMake: Build
 
 
-# Vulkan
-... I'll write this part later
-Or, if you can get the package to install properly, you just need GLM. For some reason I can't get GLM to install properly on Windows though, only on Linux
+## GLM
+ - Clone the [GitHub](https://github.com/g-truc/glm.git) repo
+	 - git clone https://github.com/g-truc/glm.git
+ - Open terminal in the directory cloned from github ("cd glm" if cloned from terminal)
+	 - md/mkdir build
+	 - cmake -S . -B build -DCMAKE_INSTALL_PREFIX="/your/desired/install/path/glm"
+	 	 - If not already, make sure this location is on the system's path
+	 - cmake --build build
+	 - cmake --build build --target install
