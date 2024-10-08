@@ -9,7 +9,7 @@ using namespace std;
 
 int main() {
     FBO fbo;
-    fbo.pushFloatAttachment("life");
+    fbo.pushFloat16Attachment("life");
 
     float aspect_ratio;
     initRenderer(fbo, aspect_ratio, STEP_FS, DISP_FS, GEO__VS, GEO__FS);
