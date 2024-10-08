@@ -9,7 +9,7 @@ uniform sampler2D life;
 uniform float inc_x;
 uniform float inc_y;
 
-#define RAD         20
+#define RAD         7
 
 
 #define SAFE_INC    0.1
@@ -103,5 +103,5 @@ void main() {
 
         /// CELL LOGIC
     
-    lifeOut = vec3(singleGOL(my_life.x, near_life.x), singleGOL(my_life.y, near_life.y), singleGOL(my_life.z, near_life.z));
+    lifeOut = vec3(singleGOL(my_life.x, near_life.y), singleGOL(my_life.y, near_life.z), singleGOL(my_life.z, near_life.x));
 }
