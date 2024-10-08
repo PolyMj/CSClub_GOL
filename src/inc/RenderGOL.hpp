@@ -52,7 +52,6 @@ extern bool shift_pressed;
 
 extern int steps_per_frame;
 extern int frames_per_second;
-extern size_t disp_step;
 
 extern Mesh brush_mesh;
 extern MeshGL brush_meshGL;
@@ -63,6 +62,16 @@ extern glm::vec4 brush_color;
 
 extern glm::vec2 last_mouse_pos;
 extern glm::vec2 mouse_pos;
+
+namespace Clock {
+	extern chrono::time_point<std::chrono::high_resolution_clock> last_time;
+	extern size_t frames_elapsed;
+
+	inline void reset();
+	inline size_t getElapsedMilis(bool reset = true);
+
+	inline void showFPS();
+}
 
 	/// END GLOBALS ///
 

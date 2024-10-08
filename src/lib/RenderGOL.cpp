@@ -1,7 +1,6 @@
 #include "RenderGOL.hpp"
 using namespace std;
 
-
 float ASPECT_RATIO;
 MeshGL SCREEN_QUAD;
 GDBuffer gbuff;
@@ -15,8 +14,7 @@ bool is_stepping = false;
 bool shift_pressed = false;
 
 int steps_per_frame = STEP_PER_FRAME;
-int frames_per_second = TARGET_FPS;
-size_t disp_step = 0;
+int frames_per_second = max(10, TARGET_FPS);
 
 Mesh brush_mesh;
 MeshGL brush_meshGL;
@@ -28,7 +26,30 @@ glm::vec4 brush_color = glm::vec4(1.0f);
 glm::vec2 last_mouse_pos = glm::vec2(0.0f);
 glm::vec2 mouse_pos = glm::vec2(0.0f);
 
+namespace Clock {
+	chrono::time_point<std::chrono::high_resolution_clock> last_time;
+	size_t frames_elapsed = 0;
 
+	inline void reset() {
+		last_time = chrono::high_resolution_clock::now();
+		frames_elapsed = 0;
+	}
+
+	inline size_t getElapsedMilis(bool reset) {
+		if (reset) frames_elapsed = 0;
+		auto curr_time = chrono::high_resolution_clock::now();
+		size_t elapsed = chrono::duration_cast<std::chrono::milliseconds>(curr_time - last_time).count(); 
+		if (reset) last_time = curr_time;
+		return elapsed;
+	}
+
+	inline void showFPS() {
+		size_t elapsed = Clock::getElapsedMilis(false);
+		float fps = float(frames_elapsed) * 1000.0f / float(elapsed);
+		cout << "True FPS = " << fps << " | True Steps per Second = " << fps * steps_per_frame << endl;
+		reset();
+	}
+}
 
 
 void Uniform::pass() {
@@ -129,12 +150,18 @@ inline void __recompute_steptime() {
 
 inline void __spf(int inc) {
 	steps_per_frame = std::max(steps_per_frame+inc, MIN_SPF);
+#if USE_DELAY
 	__recompute_steptime();
+#else
+	cout << "Steps per Frame = " << steps_per_frame << endl;
+#endif
+	Clock::reset();
 }
 
 inline void __fps(int inc) {
 	frames_per_second = std::max(frames_per_second+inc, MIN_FPS);
 	__recompute_frametime();
+	Clock::reset();
 }
 
 
@@ -236,6 +263,14 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 	if (key == GLFW_KEY_LEFT_SHIFT || key == GLFW_KEY_RIGHT_SHIFT) {
 		shift_pressed = (action == GLFW_PRESS);
 	}
+
+	if (action == GLFW_REPEAT && key == GLFW_KEY_TAB) {
+		steps_per_frame = STEP_PER_FRAME;
+		frames_per_second = max(10, TARGET_FPS);
+		__recompute_frametime();
+		Clock::reset();
+		return;
+	}
 	
 	// If key was pressed or "repeat-pressed"
 	if (action == GLFW_PRESS || action == GLFW_REPEAT) {
@@ -246,7 +281,6 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 			break;
 		case GLFW_KEY_SPACE:
 			is_stepping = !is_stepping;
-			disp_step = 0;
 			break;
 		case GLFW_KEY_UP:
 			__spf(1);
@@ -254,12 +288,14 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		case GLFW_KEY_DOWN:
 			__spf(-1);
 			break;
+#if USE_DELAY // This is for adjusting target FPS using a delay; only needed if USE_DELAY == true
 		case GLFW_KEY_RIGHT:
 			__fps(1);
 			break;
 		case GLFW_KEY_LEFT:
 			__fps(-1);
 			break;
+#endif
 		case GLFW_KEY_I:
 			__brush_inc_color(glm::vec4(0.1f, 0.0f, 0.0f, 0.0f));
 			break;
@@ -286,6 +322,9 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 			break;
 		case GLFW_KEY_ENTER:
 			__clear();
+			break;
+		case GLFW_KEY_TAB:
+			Clock::showFPS();
 			break;
 		}
 	}
@@ -337,6 +376,8 @@ int initRenderer(FBO &fbo, float &aspect_ratio,
 
 	glClearColor(CLEAR_COLOR);
 
+	glfwSwapInterval((USE_VYSYNC) ? 1 : 0);
+
 		/// END OF RENDERING OPTIONS ///
 
 	geoMeshProg::getLocations();
@@ -374,9 +415,7 @@ int initRenderer(FBO &fbo, float &aspect_ratio,
 		aspect_ratio = float(fwidth) / float(fheight);
 	}
 
-	disp_step = 0;
-
-	return(0);
+	return 0;
 }
 
 inline void clearBuffer(bool color) {
@@ -423,7 +462,12 @@ void drawGeometry(Mesh &mesh, bool clear, const glm::mat4 &transform) {
 
 
 void drawingLoop() {
+	Clock::reset();
+
 	while(!glfwWindowShouldClose(window)) {
+		// Poll events (e.g. mouse/keyboard callback functions)
+		glfwPollEvents();
+
 			/// STEP ///
 		if (is_stepping) 
 		for (int i = 0; i < steps_per_frame; ++i) {
@@ -453,18 +497,14 @@ void drawingLoop() {
 
 			/// DISPLAY ///
 
-		disp_step = 0;
-
 		// Set viewport size
 		int fwidth, fheight;
 		glfwGetFramebufferSize(window, &fwidth, &fheight);
 
-		
 		glUseProgram(displayProg::ID); // Use display program
 		glViewport(0, 0, fwidth, fheight); // Set viewport
 
 		gbuff.use(displayProg::gbLocs); // Read from gbuff
-
 
 		// Clear framebuffer
 		glClearColor(CLEAR_COLOR);
@@ -477,19 +517,29 @@ void drawingLoop() {
 		gbuff.unuse(displayProg::gbLocs); // Stop reading gbuff
 		glUseProgram(0);
 
-		// Swap framebuffers and poll for window events
-		glfwSwapBuffers(window);
+			/// ALL RENDERING DONE ///
 
-		glfwPollEvents();
+
+		// Increment elapsed frames
+		++Clock::frames_elapsed;
+#if FPS_CHECK_RATE > 0
+		// Check true FPS and SPS
+		if (Clock::frames_elapsed > FPS_CHECK_RATE)
+			Clock::showFPS();
+#endif
 		
-		// Sleep for a bit
-		if (FRAMETIME < 1'000) {
-			this_thread::sleep_for(chrono::nanoseconds(FRAMETIME));
-		}
-		else {
-			// this_thread::sleep_for(chrono::nanoseconds(FRAMETIME % 1'000));
-			this_thread::sleep_for(chrono::milliseconds(FRAMETIME / 1'000));
-		}
+#if USE_DELAY
+			// Sleep for a bit
+			if (FRAMETIME < 1'000) {
+				this_thread::sleep_for(chrono::nanoseconds(FRAMETIME));
+			}
+			else {
+				this_thread::sleep_for(chrono::milliseconds(FRAMETIME / 1000));
+			}
+#endif
+
+		// Swap framebuffers
+		glfwSwapBuffers(window);
 	}
 }
 
