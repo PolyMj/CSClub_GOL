@@ -41,7 +41,7 @@ void locStep() {
 int main() {
     // Create framebuffer
     FBO fbo;
-    fbo.pushUInt8Attachment("lifeBool"); // 8-bit unsigned integer (1=alive, 0=dead)
+    fbo.pushUInt8Attachment("lifeBool", GL_NEAREST, GL_CLAMP_TO_BORDER); // 8-bit unsigned integer (1=alive, 0=dead)
 
     // Create a custom uniform variable (value that is the same no matter what pixel you're looking at)
     Uniform locUni = Uniform(Uniform::Vec2f, "epicenter", (void*)(&locData), locStep);

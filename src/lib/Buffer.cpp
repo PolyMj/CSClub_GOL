@@ -1,7 +1,5 @@
 #include "Buffer.hpp"
 
-#define WRAPPING    GL_REPEAT
-
 
 	/// FBO MEMBER FUNCTIONS ///
 
@@ -23,7 +21,7 @@ void FBO::init(int width, int height) {
 		colAtt.colorID = createColorAttachment(
 			width, height,
 			colAtt.internal, colAtt.format, colAtt.type,
-			colAtt.texFilter, i
+			colAtt.texFilter, colAtt.wrapping, i
 		);
 
 		colAttsGL.push_back(GL_COLOR_ATTACHMENT0 + i);
@@ -69,7 +67,7 @@ unsigned int FBO::createColorAttachment(
 	int width, int height,
 	int internal, int format, 
 	int type,
-	int texFilter, int colorAttach) {
+	int texFilter, int wrapping, int colorAttach) {
 	
 	unsigned int texID = 0;
 	glGenTextures(1, &texID);
@@ -80,8 +78,8 @@ unsigned int FBO::createColorAttachment(
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, texFilter);
 
 	// Will probably need to be optional if actual textures are used rather than only gbuffers
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, WRAPPING);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, WRAPPING);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapping);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapping);
 
 	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + colorAttach, GL_TEXTURE_2D, texID, 0);
 
