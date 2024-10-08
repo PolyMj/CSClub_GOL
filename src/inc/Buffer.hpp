@@ -59,6 +59,9 @@ struct FBO {
     // Called after pushing color attachemnts (see .pushColorAttatchment())
     void init(int width, int height);
 
+    // Create a renderbuffer
+    unsigned int createDepthRBO(int width, int height);
+
     // Create a color attachment (i.e. an element of the frambuffer like color, position, etc.) | See for more details: https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexImage2D.xhtml
     unsigned int createColorAttachment(
         int width, int height,
@@ -80,7 +83,7 @@ struct FBO {
     inline void pushRGBAttachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
-            GL_RGBA, GL_RGBA, GL_FLOAT,
+            GL_RGBA, GL_RGBA, GL_UNSIGNED_BYTE,
             texFilter
         });
     };
@@ -88,7 +91,7 @@ struct FBO {
     inline void pushRGBttachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
-            GL_RGB, GL_RGB, GL_FLOAT,
+            GL_RGB, GL_RGB, GL_UNSIGNED_BYTE,
             texFilter
         });
     };
@@ -96,7 +99,7 @@ struct FBO {
     inline void pushRGttachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
-            GL_RG, GL_RGB, GL_FLOAT,
+            GL_RG, GL_RGB, GL_UNSIGNED_BYTE,
             texFilter
         });
     };
@@ -104,13 +107,13 @@ struct FBO {
     inline void pushRttachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
-            GL_R, GL_RGB, GL_FLOAT,
+            GL_R, GL_RGB, GL_UNSIGNED_BYTE,
             texFilter
         });
     };
-// FLOATS //
+// FLOATS (16-bit) //
     // Vec4f
-    inline void pushVec4fAttachment(string unifName, int texFilter = GL_NEAREST) {
+    inline void pushVec4Float16Attachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
             GL_RGBA16F, GL_RGBA, GL_FLOAT,
@@ -118,7 +121,7 @@ struct FBO {
         });
     };
     // Vec3f
-    inline void pushVec3fAttachment(string unifName, int texFilter = GL_NEAREST) {
+    inline void pushVec3Float16Attachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
             GL_RGB16F, GL_RGB, GL_FLOAT,
@@ -126,7 +129,7 @@ struct FBO {
         });
     };
     // Vec2f
-    inline void pushVec2fAttachment(string unifName, int texFilter = GL_NEAREST) {
+    inline void pushVec2Float16Attachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
             GL_RG16F, GL_RG, GL_FLOAT,
@@ -134,27 +137,116 @@ struct FBO {
         });
     };
     // Single flaot
-    inline void pushFloatAttachment(string unifName, int texFilter = GL_NEAREST) {
+    inline void pushFloat16Attachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
             GL_R16F, GL_RED, GL_FLOAT,
             texFilter
         });
     };
-// INTS //
-    // Vec4 of ints
-    inline void pushVec4iAttachment(string unifName, int texFilter = GL_NEAREST) {
+// FLOATS (32-bit) //
+    // Vec4f
+    inline void pushVec4Float32Attachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
-            GL_RGBA8I, GL_RGBA, GL_FLOAT,
+            GL_RGBA32F, GL_RGBA, GL_FLOAT,
+            texFilter
+        });
+    };
+    // Vec3f
+    inline void pushVec3Float32Attachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_RGB32F, GL_RGB, GL_FLOAT,
+            texFilter
+        });
+    };
+    // Vec2f
+    inline void pushVec2Float32Attachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_RG32F, GL_RG, GL_FLOAT,
+            texFilter
+        });
+    };
+    // Single flaot
+    inline void pushFloat32Attachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_R32F, GL_RED, GL_FLOAT,
+            texFilter
+        });
+    };
+// INTS (16-bit) //
+    // Vec4 of ints
+    inline void pushVec4Int16Attachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_RGBA16I, GL_RGBA, GL_INT,
+            texFilter
+        });
+    };
+    // Vec3 of ints
+    inline void pushVec3Int16Attachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_RGB16I, GL_RGBA, GL_INT,
+            texFilter
+        });
+    };
+    // Vec2 of ints
+    inline void pushVec2Int16Attachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_RG16I, GL_RGBA, GL_INT,
+            texFilter
+        });
+    };
+    // Single int
+    inline void pushInt16Attachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_RGBA16I, GL_RGBA, GL_INT,
+            texFilter
+        });
+    };
+// INTS (32-bit) //
+    // Vec4 of ints
+    inline void pushVec4Int32Attachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_RGBA32I, GL_RGBA, GL_INT,
+            texFilter
+        });
+    };
+    // Vec3 of ints
+    inline void pushVec3Int32Attachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_RGB32I, GL_RGBA, GL_INT,
+            texFilter
+        });
+    };
+    // Vec2 of ints
+    inline void pushVec2Int32Attachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_RG32I, GL_RGBA, GL_INT,
+            texFilter
+        });
+    };
+    // Single int
+    inline void pushInt32Attachment(string unifName, int texFilter = GL_NEAREST) {
+        colorAtts.push_back(ColorAttach{
+            unifName,
+            GL_RGBA32I, GL_RGBA, GL_INT,
             texFilter
         });
     };
 
-
 // UINT BYTES //
     // Vec4 of bytes (0-255)
-    inline void pushVec4xByteAttachment(string unifName, int texFilter = GL_NEAREST) {
+    inline void pushVec4UInt8Attachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
             GL_RGBA8UI, GL_RGBA_INTEGER, GL_UNSIGNED_INT,
@@ -162,7 +254,7 @@ struct FBO {
         });
     };
     // Vec3 of bytes (0-255)
-    inline void pushVec3xByteAttachment(string unifName, int texFilter = GL_NEAREST) {
+    inline void pushVec3UInt8ttachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
             GL_RGB8UI, GL_RGB_INTEGER, GL_UNSIGNED_INT,
@@ -170,7 +262,7 @@ struct FBO {
         });
     };
     // Vec2 of bytes (0-255)
-    inline void pushVec2xByteAttachment(string unifName, int texFilter = GL_NEAREST) {
+    inline void pushVec2UInt8ttachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
             GL_RG8UI, GL_RG_INTEGER, GL_UNSIGNED_INT,
@@ -178,42 +270,13 @@ struct FBO {
         });
     };
     // Single byte (0-255)
-    inline void pushByteAttachment(string unifName, int texFilter = GL_NEAREST) {
+    inline void pushUInt8Attachment(string unifName, int texFilter = GL_NEAREST) {
         colorAtts.push_back(ColorAttach{
             unifName,
             GL_R8UI, GL_RED_INTEGER, GL_UNSIGNED_INT,
             texFilter
         });
     };
-
-// BITS //
-    // Vec4 of half-bytes (0-15)
-    inline void pushVec4xHByteAttachment(string unifName, int texFilter = GL_NEAREST) {
-        colorAtts.push_back(ColorAttach{
-            unifName,
-            GL_RGBA4, GL_RED, GL_UNSIGNED_BYTE,
-            texFilter
-        });
-    };
-    // Vec4 of 2bit (0-3)
-    inline void pushVec4xQByteAttachment(string unifName, int texFilter = GL_NEAREST) {
-        colorAtts.push_back(ColorAttach{
-            unifName,
-            GL_RGBA2, GL_RED, GL_UNSIGNED_BYTE,
-            texFilter
-        });
-    };
-    // Vec3 of half-bytes (0-15)
-    inline void pushVec3xHByteAttachment(string unifName, int texFilter = GL_NEAREST) {
-        colorAtts.push_back(ColorAttach{
-            unifName,
-            GL_RGB4, GL_RED, GL_UNSIGNED_BYTE,
-            texFilter
-        });
-    };
-
-    // Create a renderbuffer
-    unsigned int createDepthRBO(int width, int height);
 };
 
 struct GBuffer {
