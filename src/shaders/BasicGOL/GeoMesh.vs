@@ -6,9 +6,8 @@ layout(location=0) in vec3 position;
 uniform mat4 modelMat;
 uniform mat4 otherTransform;
 
-// out type name;
-
 void main() {
+    // Calcualte normalized device coordinates
     gl_Position = otherTransform*modelMat*vec4(position, 1.0);
 }
 

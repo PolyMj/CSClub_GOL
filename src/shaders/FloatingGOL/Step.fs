@@ -9,7 +9,7 @@ uniform sampler2D life;
 uniform float inc_x;
 uniform float inc_y;
 
-#define RAD         50
+#define RAD         20
 
 
 #define SAFE_INC    0.1

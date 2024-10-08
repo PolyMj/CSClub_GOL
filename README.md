@@ -71,8 +71,8 @@ Download [Souce Code](https://github.com/assimp/assimp/releases)
  - Clone the [GitHub](https://github.com/g-truc/glm.git) repo
 	 - git clone https://github.com/g-truc/glm.git
  - Open terminal in the directory cloned from github ("cd glm" if cloned from terminal)
-	 - md/mkdir build
-	 - cmake -S . -B build -DCMAKE_INSTALL_PREFIX="/your/desired/install/path/glm"
+	 - md build
+	 - cmake -S . -B build -DCMAKE_INSTALL_PREFIX="/desired/install/path/glm"
 	 	 - If not already, make sure this location is on the system's path
 	 - cmake --build build
 	 - cmake --build build --target install

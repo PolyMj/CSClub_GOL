@@ -9,14 +9,7 @@ uniform usampler2D lifeBool;
 uniform float inc_x;
 uniform float inc_y;
 
-uniform vec2 POI;
-
 #define RAD         1
-
-// get pixel relative to pixel of interest
-uint getP(int i, int j) {
-    return uint(texture(lifeBool, interUV + vec2(i*inc_x, j*inc_y)));
-}
 
 // Gets a pixel and its symmetric pixel (negative of relative position)
 uint getPiP(int i, int j) {
@@ -26,15 +19,6 @@ uint getPiP(int i, int j) {
 
 
 void main() {
-    vec2 dist = abs(fract(POI) - interUV);
-    dist = min(dist, 1.0-dist);
-
-    if (length(dist) < 0.1) {
-        lifeBoolOut = uint(1);
-        return;
-    }
-
-
         /// GET PIXEL OF INTEREST ///
     bool is_alive = uint(texture(lifeBool, interUV)) > 0;
 
@@ -62,10 +46,6 @@ void main() {
         }
     }
         /// END SUM ///
-
-
-    // NUMBER OF CELLS IN NEIGHBORHOOD:
-    // pow(2*RAD+1, 2) - Includes pixel of interest
 
 
         /// CELL LOGIC ///

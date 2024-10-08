@@ -1,11 +1,11 @@
 #define TARGET_FPS      170
-#define STEP_PER_FRAME  3
+#define STEP_PER_FRAME  1
 
-#define WINDOW_WIDTH	1000
-#define WINDOW_HEIGHT	1000
+#define WINDOW_WIDTH	800
+#define WINDOW_HEIGHT	800
 
-#define GAME_WIDTH      250
-#define GAME_HEIGHT     250
+#define GAME_WIDTH      400
+#define GAME_HEIGHT     400
 
 
 /// Fancy stuff ///
