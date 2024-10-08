@@ -71,7 +71,7 @@ void main() {
     bool is_alive = uint(texture(lifeBool, interUV)) > 0;
 
     if (is_alive) {
-        if (near_life < 2) {
+        if (near_life < 1) {
             lifeBoolOut = 0; return;
         }
         else if (near_life < 4) {
