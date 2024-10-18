@@ -214,6 +214,7 @@ Mesh createQuad(glm::vec2 c1, glm::vec2 c2) {
 
 void __brush_set_color(glm::vec4 color) {
 	boundBetween(color, 0.0f, 1.0f);
+	cout << "Color is: " << color.r << "R, " << color.g << "G, " << color.b << "B" << endl;
 	for (Vertex &v : brush_mesh.vertices) {
 		v.color = color;
 	}
