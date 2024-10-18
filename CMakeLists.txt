@@ -51,3 +51,8 @@ install(TARGETS FloatGOL RUNTIME DESTINATION bin/FloatGOL)
 add_executable(ExampleGOL ${GENERAL_SOURCES} "./src/app/ExampleGOL.cpp")
 target_link_libraries(ExampleGOL ${ALL_LIBRARIES})
 install(TARGETS ExampleGOL RUNTIME DESTINATION bin/ExampleGOL)
+
+# MulticolorGOL
+add_executable(MulticolorGOL ${GENERAL_SOURCES} "./src/app/MulticolorGOL.cpp")
+target_link_libraries(MulticolorGOL ${ALL_LIBRARIES})
+install(TARGETS MulticolorGOL RUNTIME DESTINATION bin/MulticolorGOL)
